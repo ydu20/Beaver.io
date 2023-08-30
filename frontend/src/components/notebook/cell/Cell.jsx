@@ -1,4 +1,4 @@
-import React, {useRef, useEffect, useState} from 'react';
+import React, {useCallback, useRef, useEffect, useState} from 'react';
 import axios from 'axios';
 import debounce from 'lodash.debounce';
 import {Paper, Box, Card, CardContent, Button } from '@mui/material';
@@ -8,29 +8,93 @@ import DeleteIcon from '@mui/icons-material/Delete';
 
 
 
-function Cell({cells, editCells, runCell, ind}) {
+function Cell({id, deleteCell, kernelConnection, startEnv, setContentParent, setBusy}) {
 
     // ********************* Variables & Functions **********************
 
     const monacoRef = useRef(null);
     const containerRef = useRef(null);
-    const [outputText, setOutputText] = useState("hiii");
     // const [isCode, setIsCode] = useState(true);
     const [runStatus, setRunStatus] = useState(' ');
     const [focus, setFocus] = useState(0);
     // 0 = not highlighted, 1 = outer highlight, 2 = editing
-    const [busy, setBusy] = useState(false);
+    // const [busy, setBusy] = useState(false);
 
 
-    // const handleExecute = () => {
-    //     console.log("Clicked")
-    // }
+    const [content, setContent] = useState("");
+    const [output, setOutput] = useState("");
 
+
+
+    useEffect(() => {
+        monacoRef?.current?.addAction({
+            id: 'run-cell',
+            label: 'Run Cell Action',
+            keybindings: [2048 | 3, 1024 | 3],
+            run: (ed) => runCell(ed.getValue()),
+        });
+    }, [kernelConnection]);
+
+    const runCell = (code) => {
+        console.log("RUNNING CELL...");
+
+        console.log(code);
+        console.log(kernelConnection);
+        if (kernelConnection === null) {
+            startEnv()
+                .then(kernelConnection => {
+                    sendExecuteRequest(kernelConnection, code);
+                })
+                .catch(err => {
+                    console.log(err);
+                })
+        } else {
+            sendExecuteRequest(kernelConnection, code);
+        }
+    };
+
+
+    const sendExecuteRequest = (kc, code) => {
+        
+        if (code.trim() !== '') {
+
+            console.log("SENDING EXECUTE REQUEST...");
+
+            setRunStatus('*');
+            setOutput("");
+            const future = kc.requestExecute({ code: code });
+
+            future.onIOPub = msg => {
+                if (msg.header.msg_type === 'stream') {
+                    setOutput(prev => prev + msg.content?.text);
+                }
+                if (msg.header.msg_type === 'execute_result') {
+                    console.log(msg);
+                    setOutput(prev => prev + msg.content.data['text/plain']);
+                }
+            };
+
+            future.done
+                .then(reply => {
+                    console.log(reply.content);
+                    if (reply.content.status === 'error') {
+                        setOutput(prev => prev + `${reply.content.ename}: ${reply.content.evalue}`);
+                    }
+                    setRunStatus(reply.content.execution_count);
+                })
+                .catch(err => {
+                    console.log(err);
+                })
+        } else {
+            setOutput("");
+        }
+    }
 
 
     const handleEditorDidMount = (editor, monaco) => {
         monacoRef.current = editor;
         adjustEditorHeight();
+
 
         monaco.editor.defineTheme('custom', {
           base: 'vs',
@@ -44,8 +108,13 @@ function Cell({cells, editCells, runCell, ind}) {
         });
 
         editor.addCommand(monaco.KeyMod.CtrlCmd | 36, function() {}, "");
-        // editor.addCommand(monaco.KeyCode.Escape, switchFocus, "");
 
+        editor.addAction({
+            id: 'run-cell',
+            label: 'Run Cell Action',
+            keybindings: [2048 | 3, 1024 | 3],
+            run: (ed) => runCell(ed.getValue()),
+        });
     }
 
     const switchFocus = () => {
@@ -57,7 +126,7 @@ function Cell({cells, editCells, runCell, ind}) {
         debouncedOnEdit(text);
     }
 
-    const debouncedOnEdit = debounce((text) => editCells(ind, 'content', text), 200);
+    const debouncedOnEdit = debounce(setContent, 200);
 
 
     const adjustEditorHeight = () => {
@@ -110,7 +179,7 @@ function Cell({cells, editCells, runCell, ind}) {
         },
         outline: (focus === 1) ? '#03a9f4 solid 1px' : 
             (focus === 2) ? '#4caf50 solid 1px' : 'none',
-        marginBottom: '20px',
+        marginBottom: '14px',
     }
 
     const cellWrapperStyle = {
@@ -141,7 +210,8 @@ function Cell({cells, editCells, runCell, ind}) {
     const outputStyle = {
         fontFamily: 'Monaco, monospace',
         fontSize: '14px',
-        marginBottom: '14px',
+        marginBottom: '10px',
+        marginLeft: '5px',
     }
 
   return (
@@ -162,7 +232,10 @@ function Cell({cells, editCells, runCell, ind}) {
                         marginRight= '10px'
                         fontFamily = 'Monaco, monospace'
                     >
-                        [<span style = {{verticalAlign: '-3px'}}>{runStatus}</span>]
+                        [<span style = {{verticalAlign: 
+                            runStatus === '*' ? '-3px': '0px'}}>
+                            {runStatus}
+                        </span>]
                     </Box>
                     <Box 
                         width = "100%"
@@ -180,23 +253,22 @@ function Cell({cells, editCells, runCell, ind}) {
                                 lineNumbersMinChars: 3,
                                 find: {enabled: false},
                             }}
-                            value = {cells[ind].content}
+                            value = {content}
                             onMount = {handleEditorDidMount}
                             onChange = {handleEditorChange}
                         />
                     </Box>
 
                     <Paper sx = {buttonsPaneStyle}>
-                        <PlayCircleIcon style = {iconStyle} onClick = {() => {runCell(ind)}}/>
-                        <DeleteIcon style = {iconStyle}/>
+                        <PlayCircleIcon style = {iconStyle} onClick = {() => runCell(content)}/>
+                        <DeleteIcon style = {iconStyle} onClick = {() => deleteCell(id)}/>
                     </Paper>  
                 </Box>
             </Paper>
             <Box style = {outputStyle}>
-                {cells[ind].output.err ? "Error":
-                    cells[ind].output.stream ? "":
-                    ""
-                }
+                <pre>
+                    {output}
+                </pre>
             </Box>
         </Box>
 
