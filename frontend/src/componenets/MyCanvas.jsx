@@ -1,0 +1,134 @@
+
+import * as PIXI from 'pixi.js';
+import { Stage, Container, withPixiApp, Sprite, Graphics, useTick} from '@pixi/react';
+import { useMemo } from 'react';
+import {Box} from '@mui/material';
+import { useReducer, useRef, useState } from 'react';
+
+
+export default function MyCanvas() {
+
+
+    // const reducer = (_, { data }) => data;
+
+    // const Bunny = () => {
+    //     const [motion, update] = useReducer(reducer);
+    //     const iter = useRef(0);
+      
+    //     useTick((delta) => {
+    //       const i = (iter.current += 0.05 * delta);
+      
+    //       update({
+    //         type: 'update',
+    //         data: {
+    //           x: Math.sin(i) * 100,
+    //           y: Math.sin(i / 1.5) * 100,
+    //           rotation: Math.sin(i) * Math.PI,
+    //           anchor: Math.sin(i / 2),
+    //         },
+    //       });
+    //     });
+      
+    //     return <Sprite image="https://pixijs.io/pixi-react/img/bunny.png" {...motion} />;
+    // };
+
+    const canvasWidth = 1920;
+    const canvasHeight = 1080;
+
+    const codeBoxWidth = canvasWidth / 2;
+    const codeBoxHeight = canvasHeight / 2;
+
+    const editorPaddingTop = 30;
+    const editorPaddingSide = 40;
+
+    
+    var [x, setX] = useState(canvasWidth / 2 - codeBoxWidth / 2);
+    var [y, setY] = useState(canvasHeight / 2 - codeBoxHeight / 2);
+
+
+    var dragging = false;
+    var offsetX = 0;
+    var offsetY = 0;
+
+    const onDragStart = (event) => {
+        let sprite = event.currentTarget;
+        let position = event.data.getLocalPosition(sprite.parent);
+        offsetX = position.x - sprite.x;
+        offsetY = position.y - sprite.y;
+
+        dragging = true;
+        console.log('Clicked');
+    }
+
+    const onDragEnd = (event) => {
+        dragging = false;
+        let offsetX = 0;
+        let offsetY = 0;
+    }
+
+    const onDragMove = (event) => {
+        console.log('Moving');
+
+        const sprite = event.currentTarget;
+        if (dragging) {
+            const newPosition = event.data.getLocalPosition(sprite.parent);
+            let newX = Math.min(Math.max(newPosition.x - offsetX, 0), canvasWidth);
+            let newY = Math.min(Math.max(newPosition.y - offsetY, 0), canvasHeight);
+            setX(newX);
+            setY(newY);
+            sprite.x = newX;
+            sprite.y = newY;
+        }
+    }
+
+    const codeBoxOptions = {
+        texture: PIXI.Texture.WHITE, 
+        x: canvasWidth / 2 - codeBoxWidth / 2,
+        y: canvasHeight / 2 - codeBoxHeight / 2,
+        width: codeBoxWidth,
+        height: codeBoxHeight,
+        eventMode: 'static',
+        pointerdown: onDragStart,
+        pointerup: onDragEnd,
+        pointerupoutside: onDragEnd,
+        pointermove: onDragMove,
+    }
+
+    const CodeBox = () => {
+        return <Sprite {...codeBoxOptions}/>
+        
+    }
+
+    const editorContainerStyle = {
+        zIndex: 1,
+        position: 'absolute',
+        left: x + editorPaddingSide,
+        top: y + editorPaddingTop,
+        // height: codeBoxHeight - editorPaddingTop / 2,
+        // width: codeBoxWidth - editorPaddingSide / 2,
+        display: 'flex',
+        justifyContent: 'center',
+    }
+
+    return (
+        <>
+            <Stage
+                width={canvasWidth} 
+                height={canvasHeight} 
+                options={{
+                    backgroundColor: 0x5c812f
+                }}
+            >
+                <CodeBox />
+            </Stage>
+            <Box sx = {editorContainerStyle}>
+                Hello
+            </Box>
+        </>
+
+    )
+
+
+
+
+}

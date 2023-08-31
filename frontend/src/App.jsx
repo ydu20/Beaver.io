@@ -1,13 +1,12 @@
+import { useState } from 'react';
 import {Routes, Route} from 'react-router-dom';
-import Notebook from './components/notebook/Notebook';
-import Home from './components/Home';
+import Home from './componenets/Home';
 
-function App() {
+
+export default function App() {
   return (
     <Routes>
-      <Route index element={<Home />}/>
+      <Route index element = {<Home />} />
     </Routes>
-  );
-}
-
-export default App;
+  )
+};
