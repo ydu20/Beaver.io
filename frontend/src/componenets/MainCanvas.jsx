@@ -25,14 +25,14 @@ export default function MainCanvas() {
     const SCROLL_SENSITIVITY = 0.008;
     const PAN_SENSITIVITY = 1;
 
-    var cameraPos = {
+    const [cameraPos, setCameraPos] = useState({
         x: 0,
         y: 0,
         zoom: 1,
         prevX: 0,
         prevY: 0,
         prevZoom: 1,
-    };
+    });
 
     // Converting coordinates
     const viewport2canvasX = (x) => {
@@ -67,10 +67,10 @@ export default function MainCanvas() {
     }
 
     // Tiles
-    var tiles = [
+    const [tiles] = useState([
         new Tile(tileX, tileY, tileWidth, tileHeight, startCoding, 1),
         new Tile(tileX, tileY + tileHeight + tileMargin, tileWidth, tileHeight, startCoding, 2),
-    ];
+    ]);
 
     // Add button
     const [addButton] = useState(new AddButton());
@@ -98,67 +98,36 @@ export default function MainCanvas() {
     // Zooming
     const adjustZoom = (px, py, delta) => {
 
-        // setCameraPos(prev => {
-        //     let newZoom = prev.zoom + delta;
-        //     newZoom = Math.min( newZoom, MAX_ZOOM );
-        //     newZoom = Math.max( newZoom, MIN_ZOOM );
+        setCameraPos(prev => {
+            let newZoom = prev.zoom + delta;
+            newZoom = Math.min( newZoom, MAX_ZOOM );
+            newZoom = Math.max( newZoom, MIN_ZOOM );
 
-        //     let zoomRatio = newZoom / prev.zoom;
+            let zoomRatio = newZoom / prev.zoom;
 
-        //     let lengthX = (prev.x - px) * (zoomRatio);
-        //     let lengthY = (prev.y - py) * (zoomRatio);
+            let lengthX = (prev.x - px) * (zoomRatio);
+            let lengthY = (prev.y - py) * (zoomRatio);
 
-        //     // Zoom on ctx
-        //     let ctx = canvasRef.current.getContext('2d');
-        //     let translateX = (px - prev.x) / prev.zoom;
-        //     let translateY = (py - prev.y) / prev.zoom;
+            // Zoom on ctx
+            let ctx = canvasRef.current.getContext('2d');
+            let translateX = (px - prev.x) / prev.zoom;
+            let translateY = (py - prev.y) / prev.zoom;
             
-        //     ctx.translate(translateX, translateY);
-        //     ctx.scale(zoomRatio, zoomRatio);
-        //     ctx.translate(-translateX, -translateY);
+            ctx.translate(translateX, translateY);
+            ctx.scale(zoomRatio, zoomRatio);
+            ctx.translate(-translateX, -translateY);
 
-        //     return {
-        //         px: px,
-        //         py: py,
-        //         x: px + lengthX,
-        //         y: py + lengthY,
-        //         zoom: newZoom,
-        //         prevX: prev.x,
-        //         prevY: prev.y,
-        //         prevZoom: prev.zoom,
-        //     }
-        // });
-    
-        let prev = cameraPos;
-        let newZoom = prev.zoom + delta;
-        newZoom = Math.min( newZoom, MAX_ZOOM );
-        newZoom = Math.max( newZoom, MIN_ZOOM );
-
-        let zoomRatio = newZoom / prev.zoom;
-
-        let lengthX = (prev.x - px) * (zoomRatio);
-        let lengthY = (prev.y - py) * (zoomRatio);
-
-        // Zoom on ctx
-        let ctx = canvasRef.current.getContext('2d');
-        let translateX = (px - prev.x) / prev.zoom;
-        let translateY = (py - prev.y) / prev.zoom;
-        
-        ctx.translate(translateX, translateY);
-        ctx.scale(zoomRatio, zoomRatio);
-        ctx.translate(-translateX, -translateY);
-
-        cameraPos = {
-            px: px,
-            py: py,
-            x: px + lengthX,
-            y: py + lengthY,
-            zoom: newZoom,
-            prevX: prev.x,
-            prevY: prev.y,
-            prevZoom: prev.zoom,
-        }
-        render();
+            return {
+                px: px,
+                py: py,
+                x: px + lengthX,
+                y: py + lengthY,
+                zoom: newZoom,
+                prevX: prev.x,
+                prevY: prev.y,
+                prevZoom: prev.zoom,
+            }
+        });
     }
 
     const isInsideCv = (px, py, x1, x2, y1, y2) => {
