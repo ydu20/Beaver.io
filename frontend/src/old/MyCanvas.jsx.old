@@ -62,8 +62,8 @@ export default function MyCanvas() {
 
     const onDragEnd = (event) => {
         dragging = false;
-        let offsetX = 0;
-        let offsetY = 0;
+        offsetX = 0;
+        offsetY = 0;
     }
 
     const onDragMove = (event) => {

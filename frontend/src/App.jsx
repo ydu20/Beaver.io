@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import {Routes, Route} from 'react-router-dom';
-import Home from './componenets/Home';
+import MainCanvas from './componenets/MainCanvas';
 
 
 export default function App() {
   return (
     <Routes>
-      <Route index element = {<Home />} />
+      <Route index element = {<MainCanvas />} />
     </Routes>
   )
 };

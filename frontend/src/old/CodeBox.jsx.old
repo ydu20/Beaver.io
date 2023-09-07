@@ -1,0 +1,15 @@
+export default class CodeBox {
+
+
+    constructor(height) {
+        this.height = height;
+        this.codeEditorHeight = 24;
+        this.output = '';
+    }
+
+    draw(x, y, w, ctx)  {
+        ctx.fillStyle = 'white';
+        ctx.fillRect(x, y, w, this.codeEditorHeight);
+    }
+
+}
