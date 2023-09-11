@@ -1,0 +1,176 @@
+import TileControls from "./TileControls";
+
+export default class Tile {
+    
+    innerMarginSide = 6;
+    innerMarginTop = 24;
+    innerMarginBottom = 10;
+    initialEditorHeight = 35;
+
+    constructor (x, y, width, height, startCoding, zIndex) {
+        
+        // Container fields
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.offsetX = 0;
+        this.offsetY = 0;
+        this.drag = false;
+
+        // Codeblock fields
+        this.editorHeight = this.initialEditorHeight;
+        this.code = '';
+        this.startCoding = startCoding;
+
+        // Output fields
+        this.output = '';
+
+        // Layering
+        this.zIndex = zIndex;
+
+        // Controls
+        this.controls = new TileControls();
+
+        // Delete
+        this.delete = false;
+    }
+
+    setEditorHeight(eh) {
+        this.editorHeight = eh;
+        this.height = Math.max(this.height, eh + this.innerMarginTop + this.innerMarginBottom);
+    }
+
+    draw(ctx) {
+        // Drawing container
+        ctx.fillStyle = 'lightgreen';
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+        
+        // Drawing codebox
+        ctx.fillStyle = 'white';
+        ctx.fillRect(
+            this.x + this.innerMarginSide,
+            this.y + this.innerMarginTop,
+            this.width - 2 * this.innerMarginSide,
+            this.editorHeight
+        )
+
+        // Drawing text
+        this.drawCode(
+            ctx, 
+            this.x + this.innerMarginSide + 2,
+            this.y + this.innerMarginTop
+        );
+
+        // Drawing tile controls
+        this.controls.draw(
+            this.x + this.width - this.innerMarginSide - this.controls.width,
+            this.y + (this.innerMarginTop - this.controls.height) / 2,
+            ctx
+        );
+    }
+
+    drawCode(ctx, x, y) {
+        let lineHeight = 15.5;
+        let spaceWidth = ctx.measureText(' ').width;
+        let lines = this.code.split('\n');
+
+
+        ctx.fillStyle = 'black';
+        ctx.font = "13px monospace";
+        ctx.textAlign = 'start';
+        ctx.textBaseline = 'alphabetic'
+
+        y += 13;
+        lines.forEach(line => {
+            let currentX = x;
+
+            for (let char of line) {
+                if (char === '\t') {
+                    for (let i = 0; i < 4; i++) {
+                        ctx.fillText(' ', currentX, y);
+                        currentX += spaceWidth;
+                    }
+                } else {
+                    ctx.fillText(char, currentX, y);
+                    currentX += ctx.measureText(char).width;
+                }
+            }
+            y += lineHeight;
+        });
+    }
+
+    isInside(x, y) {
+        return (
+            x > this.x &&
+            x < this.x + this.width &&
+            y > this.y && 
+            y < this.y + this.height 
+        );
+    }
+
+    isInsideCodeBlock(x, y) {
+        return (
+            x > this.x + this.innerMarginSide &&
+            x < this.x + this.width - this.innerMarginSide &&
+            y > this.y + this.innerMarginTop &&
+            y < this.y + this.innerMarginTop + this.editorHeight
+        );
+    }
+
+    setOffset(x, y) {
+        this.offsetX = x - this.x;
+        this.offsetY = y - this.y;
+    }
+
+    clearOffset() {
+        this.offSetX = 0;
+        this.offSetY = 0;
+    }
+
+    moveTo(x, y) {
+        this.x = x - this.offsetX;
+        this.y = y - this.offsetY;
+    }
+
+    onMouseDown(px, py) {
+        if (this.isInside(px, py)) {
+            this.drag = true;
+            this.setOffset(px, py);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    onMouseMove(px, py) {
+        if (this.drag) {
+            this.moveTo(px, py);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    onMouseUp() {
+        this.drag = false;
+        this.clearOffset();
+    }
+
+    onMouseClick(px, py) {
+
+        // Check if in code block
+        if (
+            px > this.x + this.innerMarginSide &&
+            px < this.x + this.width - this.innerMarginSide &&
+            py > this.y + this.innerMarginTop &&
+            py < this.y + this.innerMarginTop + this.editorHeight
+        ) {
+            this.startCoding(this);
+        } else if (this.controls.insideCircle(px, py)) {
+
+        } else if (this.controls.insideSquare(px, py)) {
+            this.delete = true;
+        }
+    }
+}

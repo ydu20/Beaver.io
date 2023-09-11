@@ -1,15 +1,13 @@
-import { touchRippleClasses } from "@mui/material";
 import TileControls from "./TileControls";
 
 export default class Tile {
-    
+
     innerMarginSide = 6;
     innerMarginTop = 24;
     innerMarginBottom = 10;
     initialEditorHeight = 35;
-
-    constructor (x, y, width, height, startCoding, zIndex) {
-        
+    
+    constructor(x, y, width, height, zIndex, mainCanvas) {
         // Container fields
         this.x = x;
         this.y = y;
@@ -19,10 +17,9 @@ export default class Tile {
         this.offsetY = 0;
         this.drag = false;
 
-        // Codeblock fields
+        // Code editor fields
         this.editorHeight = this.initialEditorHeight;
         this.code = '';
-        this.startCoding = startCoding;
 
         // Output fields
         this.output = '';
@@ -31,17 +28,16 @@ export default class Tile {
         this.zIndex = zIndex;
 
         // Controls
-        this.controls = new TileControls();
+        this.tileControls = new TileControls();
 
-        // Delete
-        this.delete = false;
+        // Selected
+        this.selected = 0;
+
+        // Toggle Selected
+        this.mainCanvas = mainCanvas;
     }
 
-    setEditorHeight(eh) {
-        this.editorHeight = eh;
-        this.height = Math.max(this.height, eh + this.innerMarginTop + this.innerMarginBottom);
-    }
-
+    // ********************Drawing Function***********************
     draw(ctx) {
         // Drawing container
         ctx.fillStyle = 'lightgreen';
@@ -64,18 +60,17 @@ export default class Tile {
         );
 
         // Drawing tile controls
-        this.controls.draw(
-            this.x + this.width - this.innerMarginSide - this.controls.width,
-            this.y + (this.innerMarginTop - this.controls.height) / 2,
+        this.tileControls.draw(
+            this.x + this.width - this.innerMarginSide - this.tileControls.width,
+            this.y + (this.innerMarginTop - this.tileControls.height) / 2,
             ctx
         );
     }
-
+    
     drawCode(ctx, x, y) {
         let lineHeight = 15.5;
         let spaceWidth = ctx.measureText(' ').width;
         let lines = this.code.split('\n');
-
 
         ctx.fillStyle = 'black';
         ctx.font = "13px monospace";
@@ -101,6 +96,61 @@ export default class Tile {
         });
     }
 
+    // ********************Event Listeners***********************
+    // Events return true if need re-render, false otherwise.
+    onMouseDown(px, py) {
+        // * Assumption is that the event is within the tile *
+        
+        if (!this.isInsideCodeBlock(px, py)) {
+            this.selected = 1;
+            this.mainCanvas.toggleSelected({status: 1, tile: this});
+            // Drag & set offset
+            this.drag = true;
+            this.setOffset(px, py);
+        }
+
+        // No need to re-render
+        return false;
+    }
+
+    onMouseMove(px, py) {
+        if (this.drag) {
+            this.moveTo(px, py);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    onMouseUp() {
+        this.drag = false;
+        this.clearOffset();
+        return false;
+    }
+
+    onClick(px, py) {
+        if (this.isInsideCodeBlock(px, py)) {
+            if (this.selected !== 2) {
+                this.selected = 2;
+                this.mainCanvas.toggleSelected({status: 2, tile: this});
+            }
+        } else if (this.tileControls.insideSquare(px, py)) {
+            console.log("Deleting");
+            this.mainCanvas.deleteTile(this);
+        } else {
+            if (this.selected !== 1) {
+                this.selected = 1;
+                this.mainCanvas.toggleSelected({status: 1, tile: this});
+            }
+        }
+        return true;
+    }
+
+    onBlur() {
+        this.selected = 0;
+    }
+
+    // ********************IsInside functions***********************
     isInside(x, y) {
         return (
             x > this.x &&
@@ -119,6 +169,7 @@ export default class Tile {
         );
     }
 
+    // ********************Dragging helper functions***********************
     setOffset(x, y) {
         this.offsetX = x - this.x;
         this.offsetY = y - this.y;
@@ -134,44 +185,9 @@ export default class Tile {
         this.y = y - this.offsetY;
     }
 
-    onMouseDown(px, py) {
-        if (this.isInside(px, py)) {
-            this.drag = true;
-            this.setOffset(px, py);
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    onMouseMove(px, py) {
-        if (this.drag) {
-            this.moveTo(px, py);
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    onMouseUp() {
-        this.drag = false;
-        this.clearOffset();
-    }
-
-    onMouseClick(px, py) {
-
-        // Check if in code block
-        if (
-            px > this.x + this.innerMarginSide &&
-            px < this.x + this.width - this.innerMarginSide &&
-            py > this.y + this.innerMarginTop &&
-            py < this.y + this.innerMarginTop + this.editorHeight
-        ) {
-            this.startCoding(this);
-        } else if (this.controls.insideCircle(px, py)) {
-
-        } else if (this.controls.insideSquare(px, py)) {
-            this.delete = true;
-        }
+    // ********************Reshaping functions***********************
+    setEditorHeight(eh) {
+        this.editorHeight = eh;
+        this.height = Math.max(this.height, eh + this.innerMarginTop + this.innerMarginBottom);
     }
 }
