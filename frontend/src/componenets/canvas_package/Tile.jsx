@@ -5,23 +5,32 @@ export default class Tile {
     innerMarginSide = 6;
     innerMarginTop = 24;
     innerMarginBottom = 10;
-    initialEditorHeight = 35;
+    cornerRadius = 5;
+    editorOutputMargin = 10;
+    minimumEditorHeight = 35;
+    minimumOutputHeight = 35;
+    minimumHeight = this.innerMarginTop + 
+    this.minimumEditorHeight + 
+    this.editorOutputMargin + 
+    this.minimumOutputHeight + 
+    this.innerMarginBottom;
     
     constructor(x, y, width, height, zIndex, mainCanvas) {
         // Container fields
         this.x = x;
         this.y = y;
         this.width = width;
-        this.height = height;
+        this.height = this.minimumHeight;
         this.offsetX = 0;
         this.offsetY = 0;
         this.drag = false;
 
         // Code editor fields
-        this.editorHeight = this.initialEditorHeight;
+        this.editorHeight = this.minimumEditorHeight;
         this.code = '';
 
         // Output fields
+        this.outputHeight = this.minimumOutputHeight;
         this.output = '';
 
         // Layering
@@ -33,15 +42,38 @@ export default class Tile {
         // Selected
         this.selected = 0;
 
-        // Toggle Selected
+        // Main canvas
         this.mainCanvas = mainCanvas;
+
+        // Jupyter manager
+        this.jupyterManager = mainCanvas.jupyterManager;
+
+        // Execution Count
+        this.executionCount = ' ';
     }
 
     // ********************Drawing Function***********************
     draw(ctx) {
         // Drawing container
-        ctx.fillStyle = 'lightgreen';
-        ctx.fillRect(this.x, this.y, this.width, this.height);
+        ctx.beginPath();
+        let radius = this.cornerRadius;
+        ctx.arc(this.x + radius, this.y + radius, radius, Math.PI, 1.5 * Math.PI);
+        ctx.arc(this.x + this.width - radius, this.y + radius, radius, 1.5 * Math.PI, 2 * Math.PI);
+        ctx.arc(this.x + this.width - radius, this.y + this.height - radius, radius, 0, 0.5 * Math.PI);
+        ctx.arc(this.x + radius, this.y + this.height - radius, radius, 0.5 * Math.PI, Math.PI);
+        ctx.closePath();
+        ctx.lineWidth = 3;
+        if (this.selected === 2) {
+            ctx.strokeStyle = 'lightgreen';
+        } else if (this.selected === 1) {
+            ctx.strokeStyle = '#576cf3';
+        } else {
+            ctx.strokeStyle = 'silver';
+            ctx.lineWidth = 1;
+        }
+        ctx.stroke();
+        ctx.fillStyle = 'white';
+        ctx.fill();
         
         // Drawing codebox
         ctx.fillStyle = 'white';
@@ -50,14 +82,34 @@ export default class Tile {
             this.y + this.innerMarginTop,
             this.width - 2 * this.innerMarginSide,
             this.editorHeight
-        )
+        );
 
-        // Drawing text
-        this.drawCode(
+
+        ctx.strokeStyle = 'silver';
+        ctx.lineWidth = 1;
+
+        ctx.strokeRect(
+            this.x + this.innerMarginSide,
+            this.y + this.innerMarginTop,
+            this.width - 2 * this.innerMarginSide,
+            this.editorHeight
+        );
+
+        // Drawing code
+        this.drawText(
             ctx, 
             this.x + this.innerMarginSide + 2,
-            this.y + this.innerMarginTop
+            this.y + this.innerMarginTop, 
+            this.code
         );
+
+        // Drawing output
+        this.drawText(
+            ctx,
+            this.x + this.innerMarginSide + 2,
+            this.y + this.innerMarginTop + this.editorHeight + this.editorOutputMargin,
+            this.output
+        )
 
         // Drawing tile controls
         this.tileControls.draw(
@@ -65,12 +117,21 @@ export default class Tile {
             this.y + (this.innerMarginTop - this.tileControls.height) / 2,
             ctx
         );
+
+        // Drawing status
+        ctx.fillStyle = 'black';
+        ctx.font = "12px monospace";
+        ctx.textAlign = 'start';
+        ctx.textBaseline = 'alphabetic'
+
+        ctx.fillText(`[${this.executionCount}]`, this.x + 5, this.y + 14);
     }
     
-    drawCode(ctx, x, y) {
+    drawText(ctx, x, y, text) {
+        
         let lineHeight = 15.5;
         let spaceWidth = ctx.measureText(' ').width;
-        let lines = this.code.split('\n');
+        let lines = text.split('\n');
 
         ctx.fillStyle = 'black';
         ctx.font = "13px monospace";
@@ -135,8 +196,21 @@ export default class Tile {
                 this.mainCanvas.toggleSelected({status: 2, tile: this});
             }
         } else if (this.tileControls.insideSquare(px, py)) {
-            console.log("Deleting");
             this.mainCanvas.deleteTile(this);
+        } else if (this.tileControls.insideCircle(px, py)) {
+
+            // Execute current codeblock;
+            this.jupyterManager.runCell(this.code).then(res => {
+                if (res.exeCount) {
+                    this.executionCount = res.exeCount;
+                }
+                console.log(res);
+                this.output = res.output;
+                this.mainCanvas.render();
+            }).catch(err => {
+                console.log(err);
+            })
+
         } else {
             if (this.selected !== 1) {
                 this.selected = 1;
@@ -186,8 +260,22 @@ export default class Tile {
     }
 
     // ********************Reshaping functions***********************
-    setEditorHeight(eh) {
-        this.editorHeight = eh;
-        this.height = Math.max(this.height, eh + this.innerMarginTop + this.innerMarginBottom);
+
+    setTileHeight(eh, oh) {
+        if (eh) {
+            this.editorHeight = Math.max(this.minimumEditorHeight, eh);
+
+        }
+        if (oh) {
+            this.outputHeight = Math.max(this.minimumOutputHeight, oh);
+        }
+
+        this.height = this.innerMarginTop + 
+            this.editorHeight +
+            this.editorOutputMargin +
+            this.outputHeight +
+            this.innerMarginBottom
+        ;
     }
+
 }

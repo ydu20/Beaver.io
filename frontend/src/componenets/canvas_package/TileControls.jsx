@@ -26,8 +26,8 @@ export default class TileControls {
         this.circleX = x + this.width - this.margin * 2 - this.circleRadius * 3;
         this.circleY = y + this.height / 2;
 
-        ctx.fillStyle = 'lavender';
-        ctx.fillRect(x, y, this.width, this.height);
+        // ctx.fillStyle = 'lavender';
+        // ctx.fillRect(x, y, this.width, this.height);
 
         // Run
         ctx.fillStyle = 'green';

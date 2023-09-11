@@ -75,7 +75,7 @@ export default class CodeEditor {
         let oldHeight = this.attachedTile.editorHeight;
         this.editor.style.height = 'auto';
         this.editor.style.height = `${this.editor.scrollHeight}px`;
-        this.attachedTile.setEditorHeight(this.editor.scrollHeight);
+        this.attachedTile.setTileHeight(this.editor.scrollHeight, null);
 
         if (oldHeight !== this.attachedTile.editorHeight) {
             this.mainCanvas.render();

@@ -1,6 +1,7 @@
 import CodeEditor from "./CodeEditor";
 import Tile from "./Tile";
 import AddButton from "./AddButton";
+import JupyterManager from "./JupyterManager";
 
 
 export default class MainCanvas {
@@ -14,7 +15,7 @@ export default class MainCanvas {
         top: 0,
         width: `${this.canvasWidth}px`,
         height: `${this.canvasHeight}px`, 
-        backgroundColor: 'yellow',
+        backgroundColor: '#fcfc97',
     }
 
     initialTileX = 150;
@@ -31,10 +32,15 @@ export default class MainCanvas {
     PAN_SENSITIVITY = 1;
 
 
-    constructor(canvas, editor, dpr) {
+    constructor(canvas, editor, window) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.codeEditor = new CodeEditor(editor, this);
+        this.window = window;
+
+        // JupyterManager
+        this.jupyterManager = new JupyterManager(window);
+        // this.jupyterManager = null;
         
         // Styling
         for (let prop in this.initialCanvasStyle) {
@@ -42,6 +48,7 @@ export default class MainCanvas {
         }
 
         // Adjust for pixel ratio
+        let dpr = window.devicePixelRatio;
         canvas.width = this.canvasWidth * dpr;
         canvas.height = this.canvasHeight * dpr;
         this.ctx.scale(dpr, dpr);
@@ -90,11 +97,12 @@ export default class MainCanvas {
 
         // Max z-index
         this.maxZIndex = 2;
+
     }
 
     // ********************Render***********************
     render() {
-        // Assumption is tile already sorted by z-index
+        // Assumption is tiles already sorted by z-index
 
         // Clear canvas
         this.ctx.clearRect(
@@ -113,6 +121,7 @@ export default class MainCanvas {
         this.tiles.map(tile => {tile.draw(this.ctx);});
         
         // Draw add button
+        this.addButton.updateY();
         this.addButton.draw(this.ctx);
 
         // Draw code editor
@@ -425,4 +434,5 @@ export default class MainCanvas {
             x > x1 && x < x2 && y > y1 && y < y2
         )
     }
+
 }

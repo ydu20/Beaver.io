@@ -54,9 +54,12 @@ export default class AddButton {
         );
     }
 
-    // ********************Handlers***********************
-    onClick() {
-        // this.mainCanvas.
+    // ********************Update Y (for code editor)***********************
+    updateY() {
+        if (this.tile) {
+            this.y = this.tile.y + this.tile.height + this.marginTop;
+
+        }
     }
 
 }

@@ -10,10 +10,9 @@ export default function CanvasPortal() {
     useEffect(() => {
         let canvas = canvasRef.current;
         let editor = editorRef.current;
-        let dpr = window.devicePixelRatio;
 
         // Initialize canvas;
-        let mainCanvas = new MainCanvas(canvas, editor, dpr);
+        let mainCanvas = new MainCanvas(canvas, editor, window);
 
         // Mouse, wheel listeners
         canvas.addEventListener('click', (e) => mainCanvas.onClick(e));
