@@ -1,5 +1,6 @@
 import {useEffect, useRef} from 'react';
 import MainCanvas from './canvas_package/MainCanvas';
+import ControlBar from './ControlBar';
 
 export default function CanvasPortal() {
 
@@ -35,6 +36,7 @@ export default function CanvasPortal() {
             <textarea 
                 ref = {editorRef}
             />
+            <ControlBar/>
         </>
     )
   
