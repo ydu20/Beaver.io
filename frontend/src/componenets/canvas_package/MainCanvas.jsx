@@ -39,8 +39,8 @@ export default class MainCanvas {
         this.window = window;
 
         // JupyterManager
-        this.jupyterManager = new JupyterManager(window);
-        // this.jupyterManager = null;
+        // this.jupyterManager = new JupyterManager(window);
+        this.jupyterManager = null;
         
         // Styling
         for (let prop in this.initialCanvasStyle) {
@@ -381,7 +381,7 @@ export default class MainCanvas {
             }
         this.selected = selected;
 
-        this.render();
+        // this.render();
     }
 
     // ********************Add/delete tiles***********************

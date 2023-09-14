@@ -7,3 +7,8 @@ textarea, pre {
 .pointer {
   cursor: pointer;
 }
+
+textarea:focus {
+  outline: 1px solid lightgreen;
+  border: none;
+}

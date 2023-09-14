@@ -25,7 +25,6 @@ export default class CodeEditor {
         for (let prop in this.initialEditorStyle) {
             editor.style[prop] = this.initialEditorStyle[prop];
         }
-
     }
 
     // *****************Drawing Function********************
@@ -68,7 +67,7 @@ export default class CodeEditor {
         setTimeout(() => {
             this.editor.selectionStart = cursorPos + tabChar.length;
             this.editor.selectionEnd = cursorPos + tabChar.length;
-        })
+        });
     }
 
     adjustHeight() {

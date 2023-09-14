@@ -117,15 +117,4 @@ export default class JupyterManager {
         }
     }
 
-
-    // ********************Control bar handling functions***********************
-    // cbStartEnv = () => {
-    //     this.startEnv().then(_ => {
-    //         if (this.window.setControlBarStatus) {
-    //             this.window.setControlBarStatus(true);
-    //         }
-    //     }).catch(err => {
-    //         console.log(err);
-    //     });
-    // };
 }

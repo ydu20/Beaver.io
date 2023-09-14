@@ -95,6 +95,11 @@ export default class Tile {
             this.editorHeight
         );
 
+        // if (this.y === 150) {
+        //     console.log("Curr Tile1 code: ");
+        //     console.log(this.code);
+        // }
+
         // Drawing code
         this.drawText(
             ctx, 
@@ -102,6 +107,8 @@ export default class Tile {
             this.y + this.innerMarginTop, 
             this.code
         );
+
+
 
         // Drawing output
         this.drawText(
@@ -128,15 +135,14 @@ export default class Tile {
     }
     
     drawText(ctx, x, y, text) {
-        
-        let lineHeight = 15.5;
-        let spaceWidth = ctx.measureText(' ').width;
-        let lines = text.split('\n');
-
         ctx.fillStyle = 'black';
         ctx.font = "13px monospace";
         ctx.textAlign = 'start';
         ctx.textBaseline = 'alphabetic'
+
+        let lineHeight = 15.5;
+        let spaceWidth = ctx.measureText(' ').width;
+        let lines = text.split('\n');
 
         y += 13;
         lines.forEach(line => {
@@ -144,7 +150,9 @@ export default class Tile {
 
             for (let char of line) {
                 if (char === '\t') {
+                    // console.log("Tab encountered while drawing");
                     for (let i = 0; i < 4; i++) {
+                        // console.log(currentX);
                         ctx.fillText(' ', currentX, y);
                         currentX += spaceWidth;
                     }
