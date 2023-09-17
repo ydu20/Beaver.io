@@ -5,14 +5,16 @@ import ControlBar from './ControlBar';
 export default function CanvasPortal() {
 
     const canvasRef = useRef(null);
-    const editorRef = useRef(null);
+    // const editorRef = useRef(null);
+    const editorContainerRef = useRef(null);
 
     useEffect(() => {
         let canvas = canvasRef.current;
-        let editor = editorRef.current;
+        // let editor = editorRef.current;
+        let editorContainer = editorContainerRef.current;
 
         // Initialize canvas;
-        let mainCanvas = new MainCanvas(canvas, editor, window);
+        let mainCanvas = new MainCanvas(canvas, editorContainer, window);
 
         // Mouse, wheel listeners
         canvas.addEventListener('click', (e) => mainCanvas.onClick(e));
@@ -21,10 +23,11 @@ export default function CanvasPortal() {
         canvas.addEventListener('mousemove', (e) => mainCanvas.onMouseMove(e));
         canvas.addEventListener('wheel', (e) => mainCanvas.onWheel(e));
         
-        editor.addEventListener('wheel', (e) => mainCanvas.onWheel(e));
-        editor.addEventListener('input', (e) => mainCanvas.codeEditor.onInput(e));
-        editor.addEventListener('keydown', (e) => mainCanvas.codeEditor.onKeyDown(e));
+        editorContainer.addEventListener('wheel', (e) => mainCanvas.onWheel(e));
 
+        return (() => {
+            mainCanvas.destroy();
+        })
     }, [])
 
     return (
@@ -32,8 +35,11 @@ export default function CanvasPortal() {
             <canvas
                 ref = {canvasRef}
             />
-            <textarea 
+            {/* <textarea 
                 ref = {editorRef}
+            /> */}
+            <div
+                ref = {editorContainerRef}
             />
             <ControlBar/>
         </>

@@ -28,6 +28,7 @@ export default class Tile {
         // Code editor fields
         this.editorHeight = this.minimumEditorHeight;
         this.code = '';
+        this.coloredCode = []
 
         // Output fields
         this.outputHeight = this.minimumOutputHeight;
@@ -85,14 +86,19 @@ export default class Tile {
         );
 
 
-        ctx.strokeStyle = 'silver';
+        if (this.selected === 2) {
+            ctx.strokeStyle = 'lightgreen';
+        } else {
+            ctx.strokeStyle = 'silver';
+        }
         ctx.lineWidth = 1;
-
+        
+        // Add 1px margin so border doesn't get covered
         ctx.strokeRect(
-            this.x + this.innerMarginSide,
-            this.y + this.innerMarginTop,
-            this.width - 2 * this.innerMarginSide,
-            this.editorHeight
+            this.x + this.innerMarginSide - 1,
+            this.y + this.innerMarginTop - 1,
+            this.width - 2 * this.innerMarginSide + 2,
+            this.editorHeight + 2
         );
 
         // if (this.y === 150) {
@@ -101,14 +107,18 @@ export default class Tile {
         // }
 
         // Drawing code
-        this.drawText(
-            ctx, 
+        // this.drawText(
+        //     ctx, 
+        //     this.x + this.innerMarginSide + 2,
+        //     this.y + this.innerMarginTop, 
+        //     this.code
+        // );
+
+        this.drawColoredCode(
+            ctx,
             this.x + this.innerMarginSide + 2,
-            this.y + this.innerMarginTop, 
-            this.code
+            this.y + this.innerMarginTop
         );
-
-
 
         // Drawing output
         this.drawText(
@@ -136,15 +146,16 @@ export default class Tile {
     
     drawText(ctx, x, y, text) {
         ctx.fillStyle = 'black';
-        ctx.font = "13px monospace";
+        ctx.font = "14px monospace";
         ctx.textAlign = 'start';
         ctx.textBaseline = 'alphabetic'
 
-        let lineHeight = 15.5;
-        let spaceWidth = ctx.measureText(' ').width;
+        let lineHeight = 18
+        let spaceWidth = 8.6
         let lines = text.split('\n');
 
-        y += 13;
+        y += 21
+        x += 6
         lines.forEach(line => {
             let currentX = x;
 
@@ -163,6 +174,34 @@ export default class Tile {
             }
             y += lineHeight;
         });
+    }
+
+    drawColoredCode(ctx, x, y) {
+        ctx.font = "14px monospace";
+        ctx.textAlign = 'start'
+        ctx.textBaseline = 'alphabetic'
+        let lineHeight = 18
+        let charWidth = 8.57
+        
+        y += 16.5
+        x += 4
+        this.coloredCode.forEach(line => {
+            let currentX = x
+            line.forEach(block => {
+
+                if (block.color) {
+                    ctx.fillStyle = block.color
+                } else {
+                    ctx.fillStyle = 'black'
+                }
+
+                for (let char of block.text) {
+                    ctx.fillText(char, currentX, y)
+                    currentX += charWidth
+                }
+            })
+            y += lineHeight;
+        })
     }
 
     // ********************Event Listeners***********************

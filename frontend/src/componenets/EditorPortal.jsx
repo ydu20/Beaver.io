@@ -2,7 +2,7 @@ import {useEffect, useState} from 'react';
 
 import {EditorView, keymap, highlightSpecialChars, drawSelection, dropCursor,
         } from "@codemirror/view";
-import {syntaxTree, syntaxHighlighting, bracketMatching,
+import {syntaxHighlighting, bracketMatching,
         } from "@codemirror/language";
 import {defaultKeymap, history, historyKeymap, indentWithTab} from "@codemirror/commands";
 import {highlightSelectionMatches} from "@codemirror/search";
@@ -12,11 +12,11 @@ import {python} from "@codemirror/lang-python";
 import { highlightStyle } from './editor_customizations/EditorHighlightStyle';
 import { fontSize } from './editor_customizations/EditorTheme';
 
-import {getStyleTags} from '@lezer/highlight';
-
 export default function EditorPortal() {
 
-    const [scale, setScale] = useState(1);
+    const [scale, setScale] = useState(1)
+
+    const [view, setView] = useState(null)
 
     const editorExtensions = [
         highlightSpecialChars(),
@@ -130,7 +130,7 @@ export default function EditorPortal() {
 
         document.body.style.backgroundColor = 'yellow';
 
-
+        setView(view)
 
         // var span = document.createElement('span');
     
@@ -174,16 +174,26 @@ export default function EditorPortal() {
         left: 100,
     }
 
+    const onButtonClick = () => {
+        console.log("HERE")
+        let tr = view.state.update({
+            changes: { from: 0, to: view.state.doc.length, insert: "" },
+            scrollIntoView: true,
+        })
+        console.log(tr)
+        view.dispatch(tr)
+    }
+
 
     return (
         <>
             <div id = 'codemirror-editor-container' style = {containerStyle}>
             </div>
             <button
-                onClick = {() => {setScale(prev => prev * 1.3)}}
+                onClick = {onButtonClick}
                 style = {buttonStyle}
             >
-                Enlarge
+                Clear
             </button>
         </>
     )

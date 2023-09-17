@@ -1,7 +1,6 @@
 import CodeEditor from "./CodeEditor";
 import Tile from "./Tile";
 import AddButton from "./AddButton";
-import JupyterManager from "./JupyterManager";
 
 
 export default class MainCanvas {
@@ -32,10 +31,10 @@ export default class MainCanvas {
     PAN_SENSITIVITY = 1;
 
 
-    constructor(canvas, editor, window) {
+    constructor(canvas, editorContainer, window) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
-        this.codeEditor = new CodeEditor(editor, this);
+        this.codeEditor = new CodeEditor(editorContainer, this);
         this.window = window;
 
         // JupyterManager
@@ -147,6 +146,7 @@ export default class MainCanvas {
     }
 
     zoomCanvas = (x, y, delta) => {
+        console.log("Zooming")
         let prev = this.cameraPos;
 
         let newZoom = prev.zoom + delta;
@@ -166,8 +166,8 @@ export default class MainCanvas {
         this.ctx.scale(zoomRatio, zoomRatio);
         this.ctx.translate(-translateX, -translateY);
 
-        // Set editor zoom
-        this.codeEditor.editor.style.transform = `scale(${newZoom}, ${newZoom})`
+        // // Set editor zoom
+        // this.codeEditor.editor.style.transform = `scale(${newZoom}, ${newZoom})`
 
         this.cameraPos = {
             x: x + lengthX,
@@ -418,6 +418,11 @@ export default class MainCanvas {
         } else {
             this.canvas.classList.remove('pointer');
         }
+    }
+
+    // *********************** Destroy **************************
+    destroy() {
+        this.codeEditor.destroy();
     }
 
     // ********************Converting Coordinates***********************
