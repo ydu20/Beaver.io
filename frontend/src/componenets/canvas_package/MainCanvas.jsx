@@ -21,7 +21,6 @@ export default class MainCanvas {
     initialTileY = 150;
 
     tileWidth = 512;
-    tileHeight = 128;
 
     tileMargin = 50;
 
@@ -67,18 +66,16 @@ export default class MainCanvas {
             new Tile(
                 this.initialTileX, 
                 this.initialTileY, 
-                this.tileWidth, 
-                this.tileHeight, 
                 1,
                 this,
+                0,
             ),
             new Tile(
                 this.initialTileX, 
-                this.initialTileY + this.tileHeight + this.tileMargin, 
-                this.tileWidth, 
-                this.tileHeight, 
+                this.initialTileY + 100 + this.tileMargin, 
                 2,
                 this,
+                1,
             ),
         ]
 
@@ -97,7 +94,181 @@ export default class MainCanvas {
         // Max z-index
         this.maxZIndex = 2;
 
+        // Max TileId
+        this.maxTileId = 1;
+
+        // Dependencies
+        this.globalDependencies = new Map();
+
     }
+
+    // ********************Update Global Dependencies***********************
+    
+    // n^2*max(tile.dependencies.size) operation -- very inefficient
+    updateGlobalDependencies = () => {
+        this.globalDependencies = new Map();
+        this.tiles.forEach((tile) => {
+            console.log(tile.id + ": " + tile.code);
+            console.log(tile.dependencies);
+            console.log(tile.variables);
+            if (tile.dependencies) {
+                tile.dependencies.forEach(varName => {
+                    let parent = this.findParent(varName, tile.id);
+                    if (parent) {
+                        if (this.globalDependencies.has(tile)) {
+                            this.globalDependencies.get(tile).push(parent);
+                        } else {
+                            this.globalDependencies.set(tile, [parent]);
+                        }
+                    }
+                })
+            }
+        });
+
+        console.log("Global dependencies refreshed")
+        this.globalDependencies.forEach((val, key) => {
+            console.log([key, val]);
+        })
+    }
+
+    findParent(varName, id) {
+        let maxId = -1;
+        let parent = null;
+        this.tiles.forEach((tile) => {
+            if (
+                tile.id !== id &&
+                tile.variables &&
+                tile.variables.has(varName) &&
+                tile.id > maxId
+            ) {
+                parent = tile;
+                maxId = parent.id;
+            }
+        })
+        return parent;
+    }
+
+    // ********************Drawing Global Dependencies***********************
+
+    drawFlow() {
+        if (!this.globalDependencies) {
+            return;
+        }
+        this.globalDependencies.forEach((sTiles, dTile) => {
+            let dL = dTile.x;
+            let dR = dTile.x + dTile.width;
+            let dM = (dL + dR) / 2;
+
+            sTiles.forEach(sTile => {
+
+                let sL = sTile.x;
+                let sR = sTile.x + sTile.width;
+                let sM = (sL + sR) / 2;
+
+                // console.log("Drawing line...")
+                // console.log([sTile, dTile]);
+                // console.log([dL, dR, dM, sL, sR, sM]);
+
+                // Case 1
+                if (dM > sL && dM < sR) {
+                    if (dTile.y > sTile.y) {
+                        this.drawArrow(
+                            sM,
+                            sTile.y + sTile.height,
+                            dM,
+                            dTile.y
+                        );
+                    } else {
+                        this.drawArrow(
+                            sM,
+                            sTile.y,
+                            dM,
+                            dTile.y + dTile.height,
+                        );
+                    }
+                } 
+                // Case 2
+                else if (dM <= sL && dR >= sL) {
+                    if (dTile.y > sTile.y) {
+                        this.drawArrow(
+                            sL,
+                            sTile.y + sTile.height / 2,
+                            dM,
+                            dTile.y,
+                        );
+                    } else {
+                        this.drawArrow(
+                            sL,
+                            sTile.y + sTile.height / 2,
+                            dM,
+                            dTile.y + dTile.height,
+                        );
+                    }
+                } else if (dM >= sR && dL <= sR) {
+                    if (dTile.y > sTile.y) {
+                        this.drawArrow(
+                            sR,
+                            sTile.y + sTile.height / 2,
+                            dM,
+                            dTile.y,
+                        );
+                    } else {
+                        this.drawArrow(
+                            sR,
+                            sTile.y + sTile.height / 2,
+                            dM,
+                            dTile.y + dTile.height,
+                        );
+                    }
+                }
+                // Case 3
+                else if (dR < sL) {
+                    this.drawArrow(
+                        sL,
+                        sTile.y + sTile.height / 2,
+                        dR,
+                        dTile.y + dTile.height / 2,
+                    );
+                } else {
+                    this.drawArrow(
+                        sR,
+                        sTile.y + sTile.height / 2,
+                        dL,
+                        dTile.y + dTile.height / 2,
+                    );
+                }
+
+            });
+        });
+    }
+
+    drawArrow(x1, y1, x2, y2) {
+        let headLength = 10;   // length of the arrowhead
+        let headWidth = 5;     // width of the arrowhead
+    
+        // Calculate angle of the line
+        let angle = Math.atan2(y2 - y1, x2 - x1);
+        
+        // Calculate angles for the sides of the arrowhead
+        let angle1 = Math.atan2(headWidth / 2, headLength);
+        let angle2 = -angle1;
+    
+        // Draw the main line of the arrow
+        this.ctx.beginPath();
+        this.ctx.moveTo(x1, y1);
+        this.ctx.lineTo(x2, y2);
+        this.ctx.stroke();
+    
+        // Draw the arrowhead
+        this.ctx.beginPath();
+        this.ctx.moveTo(x2, y2);
+        this.ctx.lineTo(x2 - headLength * Math.cos(angle + angle1), y2 - headLength * Math.sin(angle + angle1));
+        this.ctx.lineTo(x2 - headLength * Math.cos(angle + angle2), y2 - headLength * Math.sin(angle + angle2));
+        this.ctx.lineTo(x2, y2);
+        this.ctx.closePath();
+        this.ctx.fill();
+    }
+
 
     // ********************Render***********************
     render() {
@@ -115,6 +286,9 @@ export default class MainCanvas {
         this.ctx.beginPath();
         this.ctx.arc(0, 0, 5, 0, 2 * Math.PI);
         this.ctx.stroke();
+
+        // Draw dependency flow
+        this.drawFlow();
 
         // Draw tiles layered by z indices
         this.tiles.map(tile => {tile.draw(this.ctx);});
@@ -146,7 +320,6 @@ export default class MainCanvas {
     }
 
     zoomCanvas = (x, y, delta) => {
-        console.log("Zooming")
         let prev = this.cameraPos;
 
         let newZoom = prev.zoom + delta;
@@ -166,7 +339,7 @@ export default class MainCanvas {
         this.ctx.scale(zoomRatio, zoomRatio);
         this.ctx.translate(-translateX, -translateY);
 
-        // // Set editor zoom
+        // Set editor zoom
         // this.codeEditor.editor.style.transform = `scale(${newZoom}, ${newZoom})`
 
         this.cameraPos = {
@@ -387,14 +560,14 @@ export default class MainCanvas {
     // ********************Add/delete tiles***********************
     addTile(tile) {
         this.maxZIndex != 1;
+        this.maxTileId += 1;
         this.tiles.push(
             new Tile(
                 tile.x, 
                 tile.y + tile.height + this.tileMargin, 
-                this.tileWidth, 
-                this.tileHeight, 
                 this.maxZIndex, 
-                this
+                this, 
+                this.maxTileId,
             )
         );
         
@@ -410,6 +583,7 @@ export default class MainCanvas {
         
         this.render();
     }
+
 
     // *********************** Handling Pointer CSS **************************
     setPointer(display) {

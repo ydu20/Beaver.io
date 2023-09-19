@@ -15,11 +15,11 @@ export default class Tile {
     this.minimumOutputHeight + 
     this.innerMarginBottom;
     
-    constructor(x, y, width, height, zIndex, mainCanvas) {
+    constructor(x, y, zIndex, mainCanvas, id) {
         // Container fields
         this.x = x;
         this.y = y;
-        this.width = width;
+        this.width = this.innerMarginSide * 2 + 2 + 8.6 * 80 + 8;
         this.height = this.minimumHeight;
         this.offsetX = 0;
         this.offsetY = 0;
@@ -51,6 +51,13 @@ export default class Tile {
 
         // Execution Count
         this.executionCount = ' ';
+
+        // Dependencies & Variables
+        this.dependencies = null;
+        this.variables = null;
+
+        // ID
+        this.id = id;
     }
 
     // ********************Drawing Function***********************
@@ -101,19 +108,7 @@ export default class Tile {
             this.editorHeight + 2
         );
 
-        // if (this.y === 150) {
-        //     console.log("Curr Tile1 code: ");
-        //     console.log(this.code);
-        // }
-
         // Drawing code
-        // this.drawText(
-        //     ctx, 
-        //     this.x + this.innerMarginSide + 2,
-        //     this.y + this.innerMarginTop, 
-        //     this.code
-        // );
-
         this.drawColoredCode(
             ctx,
             this.x + this.innerMarginSide + 2,
@@ -203,6 +198,7 @@ export default class Tile {
             y += lineHeight;
         })
     }
+
 
     // ********************Event Listeners***********************
     // Events return true if need re-render, false otherwise.

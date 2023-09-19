@@ -1,7 +1,29 @@
 import {EditorView} from "@codemirror/view";
 import { editorExtensions } from "../editor_customizations/EditorExtensions";
+import {syntaxTree} from '@codemirror/language';
 
 export default class CodeEditor {
+
+    pythonKeywordsFuncs = new Set([
+        'False', 'None', 'True', 'and', 'as', 'assert', 'async', 
+        'await', 'break', 'class', 'continue', 'def', 'del', 'elif', 
+        'else', 'except', 'finally', 'for', 'from', 'global', 'if', 
+        'import', 'in', 'is', 'lambda', 'nonlocal', 'not', 'or', 
+        'pass', 'raise', 'return', 'try', 'while', 'with', 'yield',
+        'abs', 'dict', 'help', 'min', 'setattr',
+        'all', 'dir', 'hex', 'next', 'slice',
+        'any', 'divmod', 'id', 'object', 'sorted',
+        'ascii', 'enumerate', 'input', 'oct', 'staticmethod',
+        'bin', 'eval', 'int', 'open', 'str',
+        'bool', 'exec', 'isinstance', 'ord', 'sum',
+        'bytearray', 'filter', 'issubclass', 'pow', 'super',
+        'bytes', 'float', 'iter', 'print', 'tuple',
+        'callable', 'format', 'len', 'property', 'type',
+        'chr', 'frozenset', 'list', 'range', 'vars',
+        'classmethod', 'getattr', 'locals', 'repr', 'zip',
+        'compile', 'globals', 'map', 'reversed', '__import__',
+        'complex', 'hasattr', 'max', 'round', 'delattr'
+    ])
 
     initialEditorContainerStyle = {
         position: 'fixed', 
@@ -46,39 +68,18 @@ export default class CodeEditor {
 
     // *****************Event Listeners********************
 
-    // onInput(e) {
-    //     this.editor.value = e.target.value;
-    //     this.attachedTile.code = e.target.value;
-    //     this.adjustHeight();
-    // }
-
-    // onKeyDown(e) {
-    //     if (e.key === 'Tab') {
-    //         e.preventDefault();
-    //         this.insertTab();
-    //     }
-    // }
-
-    // *****************Special Adjustments********************
-    // insertTab() {
-    //     let cursorPos = this.editor.selectionStart;
-    //     let beforeCursor = this.editor.value.slice(0, cursorPos);
-    //     let afterCursor = this.editor.value.slice(cursorPos);
-
-    //     let tabChar = '\t';
-    //     this.editor.value = beforeCursor + tabChar + afterCursor;
-
-    //     setTimeout(() => {
-    //         this.editor.selectionStart = cursorPos + tabChar.length;
-    //         this.editor.selectionEnd = cursorPos + tabChar.length;
-    //     });
-    // }
-
     onEditorChange = (update) => {
         if (update.heightChanged) {
+            let newCode = update.state.doc.toString()
+
+            this.updateTileCode();
             this.adjustHeight(update.view.dom.scrollHeight);
+
+            this.updateTileDependencies(update.state, newCode);
         }
     }
+
+    // *****************Adjust Height********************
 
     adjustHeight = (height) => {
         this.attachedTile.setTileHeight(height, null)
@@ -88,7 +89,7 @@ export default class CodeEditor {
     // *****************Toggle coding functions********************
 
     startCoding(tile) {
-        this.attachedTile = tile
+        this.attachedTile = tile;
 
         // Update editorState with Tile's code, editorView with Tile's height
         let tr = this.editorView.state.update({
@@ -99,9 +100,10 @@ export default class CodeEditor {
     }
 
     endCoding() {
-        this.updateTileCode()
-        this.attachedTile = null
-        this.editorContainer.style.display = 'none'
+        this.updateTileCode();
+        this.updateTileDependencies(this.editorView.state, this.editorView.state.doc.toString());
+        this.attachedTile = null;
+        this.editorContainer.style.display = 'none';
     }
 
     updateTileCode() {
@@ -133,6 +135,132 @@ export default class CodeEditor {
         this.attachedTile.code = this.editorView.state.doc.toString()
         this.attachedTile.coloredCode = coloredCode
     }
+
+    // ********************Update tile dependencies***********************
+
+    updateTileDependencies = (state, code) => {
+        let cursor = syntaxTree(state).cursor();
+        let envStack = [];
+        let dependencies = new Set();
+        // Push global set
+        envStack.push(new Set());
+
+        this.handleTopLevel(cursor, envStack, dependencies, code);
+
+        let updatedVars = new Set();
+        envStack.forEach(v => v.forEach(v2 => updatedVars.add(v2)));
+        // console.log(dependencies)
+        // console.log(updatedVars)
+
+        this.attachedTile.dependencies = dependencies;
+        this.attachedTile.variables = updatedVars;
+
+        // Update global dependencies
+        this.mainCanvas.updateGlobalDependencies();
+    }
+
+    handleTopLevel = (cursor, envStack, deps, code) => {
+        // Go into first level under "Script"
+        cursor.firstChild()
+        do {
+            this.recurseST(cursor, envStack, deps, code);
+        } while (cursor.nextSibling())
+    }
+
+    // Note: parents handle the return of the pointer back to the parent
+    recurseST = (cursor, envStack, deps, code) => {
+        
+        let nodeType = cursor.node.type.name
+        let nodeStr = code.substring(cursor.from, cursor.to)
+        // console.log([nodeType, nodeStr])
+
+        // Base case: is a leaf
+        if (!cursor.node.firstChild) {
+            if (nodeType === 'VariableName') {
+                if (!this.varInEnv(nodeStr, envStack)) {
+                    deps.add(nodeStr)
+                }
+            }
+        }
+
+        // Recursive case
+        if (nodeType === 'AssignStatement') {
+            // Remember modified var, then handle rhs first
+            cursor.firstChild()
+            let modVar = null
+            if (cursor.node.type.name === 'VariableName') {
+                modVar = code.substring(cursor.from, cursor.to)
+            } else if (cursor.node.type.name === 'MemberExpression') {
+                cursor.firstChild()
+                modVar = code.substring(cursor.from, cursor.to)
+                if (!this.varInEnv(modVar, envStack)) {
+                    deps.add(modVar)
+                }
+                cursor.parent()
+            }
+
+            cursor.nextSibling()
+
+            do {
+                this.recurseST(cursor, envStack, deps, code)
+            } while (cursor.nextSibling())
+            
+            cursor.parent()
+
+            if (modVar) {
+                
+                envStack[envStack.length - 1].add(modVar)
+            }
+        } else if (['BinaryExpression', 'Body', 'ReturnStatement',
+            'CallExpression', 'ExpressionStatement', 'ArgList'].includes(nodeType)) {
+            // Go down a level and iterate
+            cursor.firstChild()
+            do {
+                this.recurseST(cursor, envStack, deps, code)
+            } while (cursor.nextSibling())
+            cursor.parent()
+        } if (nodeType === 'FunctionDefinition') {
+
+            // Add function name to environment
+            cursor.firstChild()
+            cursor.nextSibling()
+            if (cursor.node.type.name === 'VariableName') {
+                envStack[envStack.length - 1].add(code.substring(cursor.from, cursor.to))
+            }
+            cursor.parent()
+
+            // Iterate through function
+            cursor.firstChild()
+            // Push to env stack for new scope
+            envStack.push(new Set())
+            do {
+                this.recurseST(cursor, envStack, deps, code)
+            } while(cursor.nextSibling())
+            
+            // Pop from env stack and return to parent
+            envStack.pop()
+            cursor.parent()
+        } if (nodeType === 'ParamList') {
+            cursor.firstChild()
+            
+            do {
+                if (cursor.node.type.name === 'VariableName') {
+                    envStack[envStack.length - 1].add(code.substring(cursor.from, cursor.to))
+                }
+            } while (cursor.nextSibling())
+            cursor.parent()
+        }
+    }
+
+    varInEnv = (variable, envStack) => {
+        for (let env of envStack) {
+            if (env.has(variable)) {
+                return true;
+            }
+        }
+        return this.pythonKeywordsFuncs.has(variable);
+    }
+
 
     // ********************Destroy***********************
     destroy() {

@@ -35,9 +35,6 @@ export default function CanvasPortal() {
             <canvas
                 ref = {canvasRef}
             />
-            {/* <textarea 
-                ref = {editorRef}
-            /> */}
             <div
                 ref = {editorContainerRef}
             />
