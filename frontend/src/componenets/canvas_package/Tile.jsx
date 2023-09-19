@@ -50,7 +50,7 @@ export default class Tile {
         this.jupyterManager = mainCanvas.jupyterManager;
 
         // Execution Count
-        this.executionCount = ' ';
+        this.executionCount = -1;
 
         // Dependencies & Variables
         this.dependencies = null;
@@ -136,7 +136,7 @@ export default class Tile {
         ctx.textAlign = 'start';
         ctx.textBaseline = 'alphabetic'
 
-        ctx.fillText(`[${this.executionCount}]`, this.x + 5, this.y + 14);
+        ctx.fillText(`[${this.executionCount == -1 ? ' ': this.executionCount}]`, this.x + 5, this.y + 14);
     }
     
     drawText(ctx, x, y, text) {
