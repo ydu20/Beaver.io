@@ -1,35 +1,33 @@
 const Panel = require('../models/panel.model');
 
-
 const savePanel = async (req, res) => {
 
-    var panel = new Panel({
-        id: req.body.id,
-        owerEmail: req.body.ownerEmail,
+    const query = {id: req.body.id};
+    const update = {
+        ownerEmail: req.body.ownerEmail,
         x: req.body.x,
         y: req.body.y,
         zoom: req.body.zoom,
         tiles: req.body.tiles,
-    });
+    };
+    const options = {upsert: true}
 
-    panel.save()
-        .then(res => {
-
-        })
-        .catch(err => {
-
-        });
-
-    return res.status(200).json('savePanel called');
+    Panel.findOneAndUpdate(query, update, options)
+        .then(() => res.json('Panel saved!'))
+        .catch(err => res.status(400).json('Error: ' + err));
 }
 
 const loadPanel = async (req, res) => {
 
+    const id = req.params.id;
+    const panel = await Panel.findOne({id: id});
 
-    return res.status(200).json('loadPanel called');
+    if (!panel) {
+        res.status(400).json('Panel not found.');
+    } else {
+        res.json(panel);
+    }
 }
-
-
 
 
 module.exports = {

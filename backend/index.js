@@ -8,6 +8,7 @@ const mongoose = require("mongoose");
 
 // Express app
 const app = express();
+app.use(express.json());
 const port = process.env.PORT;
 
 // Routes
