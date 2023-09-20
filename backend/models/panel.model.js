@@ -4,15 +4,17 @@ const Schema = mongoose.Schema;
 
 const SchemaTypes = mongoose.Schema.Types;
 
-const tileSchema = new Schema({
-
+const panelSchema = new Schema({
+    
     id: {
         type: String,
         required: true,
+        unique: true,
     },
-    PanelId: {
+    ownerEmail: {
         type: String,
         required: true,
+        trim: true
     },
     x: {
         type: SchemaTypes.Double,
@@ -22,21 +24,16 @@ const tileSchema = new Schema({
         type: SchemaTypes.Double,
         required: true,
     },
-    code: {
-        type: String,
+    zoom: {
+        type: SchemaTypes.Double,
         required: true,
     },
-    output: {
-        type: String,
-        required: true,
-    }, 
-    zIndex: {
-        type: Number,
-        required: true,
-    },
+    tiles: [
+        {}
+    ],
 
 });
 
-const Tiles = mongoose.model('Tiles', tileSchema);
+const Panel = mongoose.model('Panel', panelSchema);
 
-module.exports = Tiles;
+module.exports = Panel;
