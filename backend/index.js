@@ -4,11 +4,13 @@ require('dotenv').config();
 // Imports
 const express = require("express");
 const mongoose = require("mongoose");
+const cors = require('cors');
 
 
 // Express app
 const app = express();
 app.use(express.json());
+app.use(cors({origin: true, credentials: true}));
 const port = process.env.PORT;
 
 // Routes

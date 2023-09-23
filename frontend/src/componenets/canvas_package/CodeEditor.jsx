@@ -70,6 +70,11 @@ export default class CodeEditor {
 
     onEditorChange = (update) => {
         if (update.heightChanged) {
+
+            if (!this.attachedTile) {
+                return;
+            }
+
             let newCode = update.state.doc.toString()
 
             this.updateTileCode();
@@ -104,9 +109,11 @@ export default class CodeEditor {
         this.updateTileDependencies(this.editorView.state, this.editorView.state.doc.toString());
         this.attachedTile = null;
         this.editorContainer.style.display = 'none';
+        this.mainCanvas.autoSave();
     }
 
     updateTileCode() {
+
         let lineDivs = Array.from(document.querySelectorAll(".cm-line"));
 
         let coloredCode = []
@@ -149,8 +156,6 @@ export default class CodeEditor {
 
         let updatedVars = new Set();
         envStack.forEach(v => v.forEach(v2 => updatedVars.add(v2)));
-        // console.log(dependencies)
-        // console.log(updatedVars)
 
         this.attachedTile.dependencies = dependencies;
         this.attachedTile.variables = updatedVars;
@@ -268,11 +273,11 @@ export default class CodeEditor {
     }
 
     // ********************Converting Coordinates***********************
-    canvas2viewportX(x, cameraPos) {
+    canvas2viewportX = (x, cameraPos) => {
         return (x * cameraPos.zoom) + cameraPos.x;
     }
 
-    canvas2viewportY(y, cameraPos) {
+    canvas2viewportY = (y, cameraPos) => {
         return (y * cameraPos.zoom) + cameraPos.y;
     }
 

@@ -1,9 +1,14 @@
 import CodeEditor from "./CodeEditor";
 import Tile from "./Tile";
 import AddButton from "./AddButton";
-
+import axios from '../AxiosInstance';
 
 export default class MainCanvas {
+
+    MAX_ZOOM = 5;
+    MIN_ZOOM = 0.1;
+    ZOOM_SENSITIVITY = 0.008;
+    PAN_SENSITIVITY = 1;
 
     canvasWidth = 1800;
     canvasHeight = 1040;
@@ -21,14 +26,12 @@ export default class MainCanvas {
     initialTileY = 150;
 
     tileWidth = 512;
-
     tileMargin = 50;
 
-    MAX_ZOOM = 5;
-    MIN_ZOOM = 0.1;
-    ZOOM_SENSITIVITY = 0.008;
-    PAN_SENSITIVITY = 1;
+    loadFromServer = true;
+    saveToServer = true;
 
+    debounceDelay = 3000;
 
     constructor(canvas, editorContainer, window) {
         this.canvas = canvas;
@@ -51,15 +54,42 @@ export default class MainCanvas {
         canvas.height = this.canvasHeight * dpr;
         this.ctx.scale(dpr, dpr);
 
+        // Selected Status
+        this.selected = {
+            tile: null,
+            status: 0,
+        }
+
+        // Add button
+        this.addButton = new AddButton();
+
+        // Global Dependencies
+        this.globalDependencies = new Map();
+
+        this.cameraPos = {
+            x: 0,
+            y: 0,
+            zoom: 1,
+        };
+        this.tiles = [];
+        this.maxZIndex = -1;
+        this.maxTileId = -1;
+
+        // Debounce timeoutID
+        this.debounceID = null;
+
+        // Setting up Panel from server/local
+        if (this.loadFromServer) {
+            this.loadPanel();
+            return;
+        }
+
         // Set camera position
         this.cameraPos = {
             x: 0,
             y: 0,
             zoom: 1,
-            prevX: 0,
-            prevY: 0,
-            prevZoom: 1,
-        }
+        };
 
         // Tiles
         this.tiles = [
@@ -77,19 +107,7 @@ export default class MainCanvas {
                 this,
                 1,
             ),
-        ]
-
-        // Selected Status
-        this.selected = {
-            tile: null,
-            status: 0,
-        }
-
-        // Add button
-        this.addButton = new AddButton();
-
-        // Render
-        this.render();
+        ];
 
         // Max z-index
         this.maxZIndex = 2;
@@ -97,9 +115,79 @@ export default class MainCanvas {
         // Max TileId
         this.maxTileId = 1;
 
-        // Dependencies
-        this.globalDependencies = new Map();
+        // Render
+        this.render();
+    }
 
+    // ********************Loading / Saving***********************
+    loadPanel = () => {
+        axios.get('/panels/1').then(res => {
+            let panelData = res.data;
+
+            this.zoomCanvas(0, 0, panelData.zoom - this.cameraPos.zoom);
+            this.panCanvas(panelData.x, panelData.y);
+        
+            this.tiles = panelData.tiles.map(tileData => {
+                let tile = new Tile(
+                    tileData.x,
+                    tileData.y,
+                    tileData.zIndex,
+                    this,
+                    tileData.id,
+                );
+                tile.output = tileData.output;
+                tile.code = tileData.code;
+
+                this.codeEditor.startCoding(tile);
+                this.codeEditor.updateTileCode();
+                this.codeEditor.adjustHeight(this.codeEditor.editorView.dom.scrollHeight);
+                this.codeEditor.updateTileDependencies(this.codeEditor.editorView.state, this.codeEditor.editorView.state.doc.toString());
+                this.codeEditor.endCoding();
+
+                this.maxZIndex = Math.max(tileData.zIndex, this.maxZIndex);
+                this.maxTileId = Math.max(tileData.id, this.maxTileId);
+                return tile;
+            });
+
+            this.updateGlobalDependencies();
+            this.render();
+        });
+    }
+
+    savePanel = () => {
+        // console.log('savingPanel...');
+        let tilesData = this.tiles.map(tile => {
+            return {
+                id: tile.id,
+                x: tile.x,
+                y: tile.y,
+                code: tile.code,
+                output: tile.output,
+                zIndex: tile.zIndex,
+            };
+        });
+
+        let panelData = {
+            id: '1',
+            ownerEmail: 'ydu1701@gmail.com',
+            x: this.cameraPos.x,
+            y: this.cameraPos.y,
+            zoom: this.cameraPos.zoom,
+            tiles: tilesData,
+        };
+
+        axios.post('/panels', panelData).then((res) => {
+            console.log(res.data);
+        }).catch((err) => {
+            console.log(err);
+        });
+    }
+
+    autoSave = () => {
+        if (this.saveToServer) {
+            clearTimeout(this.debounceID);
+            this.debounceID = setTimeout(() => this.savePanel(), this.debounceDelay);
+        }
     }
 
     // ********************Update Global Dependencies***********************
@@ -107,10 +195,10 @@ export default class MainCanvas {
     // n^2*max(tile.dependencies.size) operation -- very inefficient
     updateGlobalDependencies = () => {
         this.globalDependencies = new Map();
-        this.tiles.forEach((tile) => {
-            console.log(tile.id + ": " + tile.code);
-            console.log(tile.dependencies);
-            console.log(tile.variables);
+        this.tiles?.forEach((tile) => {
+            // console.log(tile.id + ": " + tile.code);
+            // console.log(tile.dependencies);
+            // console.log(tile.variables);
             if (tile.dependencies) {
                 tile.dependencies.forEach(varName => {
                     let parent = this.findParent(varName, tile.id);
@@ -125,10 +213,9 @@ export default class MainCanvas {
             }
         });
 
-        console.log("Global dependencies refreshed")
-        this.globalDependencies.forEach((val, key) => {
-            console.log([key, val]);
-        })
+        // this.globalDependencies.forEach((val, key) => {
+        //     console.log([key, val]);
+        // });
     }
 
     findParent(varName, id) {
@@ -154,6 +241,9 @@ export default class MainCanvas {
         if (!this.globalDependencies) {
             return;
         }
+
+        this.ctx.strokeStyle = 'black';
+
         this.globalDependencies.forEach((sTiles, dTile) => {
             let dL = dTile.x;
             let dR = dTile.x + dTile.width;
@@ -283,8 +373,9 @@ export default class MainCanvas {
         );
 
         // Draw circle marking origin
+        this.ctx.strokeStyle = 'black';
         this.ctx.beginPath();
-        this.ctx.arc(0, 0, 5, 0, 2 * Math.PI);
+        this.ctx.arc(50, 50, 5, 0, 2 * Math.PI);
         this.ctx.stroke();
 
         // Draw dependency flow
@@ -311,11 +402,9 @@ export default class MainCanvas {
             x: prev.x + dx,
             y: prev.y + dy,
             zoom: prev.zoom,
-            prevX: prev.x,
-            prevY: prev.y,
-            prevZoom: prev.zoom,
         }
 
+        this.autoSave();
         this.render();
     }
 
@@ -346,11 +435,9 @@ export default class MainCanvas {
             x: x + lengthX,
             y: y + lengthY,
             zoom: newZoom,
-            prevX: prev.x,
-            prevY: prev.y,
-            prevZoom: prev.zoom,
         }
 
+        this.autoSave();
         this.render();
     }
 
@@ -571,6 +658,7 @@ export default class MainCanvas {
             )
         );
         
+        this.autoSave();
         this.render();
     }
     
