@@ -10,15 +10,15 @@ export default class MainCanvas {
     ZOOM_SENSITIVITY = 0.008;
     PAN_SENSITIVITY = 1;
 
-    canvasWidth = 1800;
-    canvasHeight = 1040;
+    viewportWidth = 1800;
+    viewportHeight = 1040;
 
     initialCanvasStyle = {
         position: 'fixed',
         left: 0,
         top: 0,
-        width: `${this.canvasWidth}px`,
-        height: `${this.canvasHeight}px`, 
+        width: `${this.viewportWidth}px`,
+        height: `${this.viewportHeight}px`, 
         backgroundColor: '#fcfc97',
     }
 
@@ -28,8 +28,19 @@ export default class MainCanvas {
     tileWidth = 512;
     tileMargin = 50;
 
-    loadFromServer = true;
-    saveToServer = true;
+    minimapWidth = 128;
+    minimapMargin = 32;
+
+    cxOffset = this.viewportWidth / 2;
+    cxMax = 10000 + this.cxOffset;
+    cxMin = -10000 + this.cxOffset;
+
+    cyOffset = this.viewportHeight / 2;
+    cyMax = 10000 + this.cyOffset;
+    cyMin = -10000 + this.cyOffset;
+
+    loadFromServer = false;
+    saveToServer = false;
 
     debounceDelay = 3000;
 
@@ -50,8 +61,8 @@ export default class MainCanvas {
 
         // Adjust for pixel ratio
         let dpr = window.devicePixelRatio;
-        canvas.width = this.canvasWidth * dpr;
-        canvas.height = this.canvasHeight * dpr;
+        canvas.width = this.viewportWidth * dpr;
+        canvas.height = this.viewportHeight * dpr;
         this.ctx.scale(dpr, dpr);
 
         // Selected Status
@@ -118,6 +129,36 @@ export default class MainCanvas {
         // Render
         this.render();
     }
+
+    // ******************** Draw Minimap ********************
+    drawMinimap = () => {
+        let vX = this.viewportWidth - this.minimapMargin - this.minimapWidth;
+        let vY = this.viewportHeight - this.minimapMargin - this.minimapWidth;
+
+        let x = this.viewport2canvasX(vX);
+        let y = this.viewport2canvasY(vY);
+        let width = this.minimapWidth / this.cameraPos.zoom;
+
+        this.ctx.fillStyle = 'pink';
+        this.ctx.fillRect(x, y, width, width);
+
+        let vEX = (-this.cameraPos.x / this.cameraPos.zoom - this.cxMin) / (this.cxMax - this.cxMin) * this.minimapWidth;
+        let vEY = (-this.cameraPos.y / this.cameraPos.zoom - this.cyMin) / (this.cyMax - this.cyMin) * this.minimapWidth;
+
+
+        let eX = this.viewport2canvasX(vX + vEX);
+        let eY = this.viewport2canvasY(vY + vEY);
+        let eWidth = (this.viewportWidth / this.cameraPos.zoom) / (this.cxMax - this.cxMin) * this.minimapWidth / this.cameraPos.zoom;
+        let eHeight = (this.viewportHeight / this.cameraPos.zoom / (this.cyMax - this.cyMin)) * this.minimapWidth / this.cameraPos.zoom;
+
+        // console.log(x + eX, y + eY, eWidth, eHeight);
+        // console.log(this.viewportWidth / this.cameraPos.zoom);
+        // console.log(this.cxMax - this.cxMin);
+
+        this.ctx.fillStyle = 'lightgreen';
+        this.ctx.fillRect(eX, eY, eWidth, eHeight);
+    }
+
 
     // ********************Loading / Saving***********************
     loadPanel = () => {
@@ -368,8 +409,8 @@ export default class MainCanvas {
         this.ctx.clearRect(
             -this.cameraPos.x / this.cameraPos.zoom, 
             -this.cameraPos.y / this.cameraPos.zoom, 
-            this.canvasWidth / this.cameraPos.zoom, 
-            this.canvasHeight / this.cameraPos.zoom
+            this.viewportWidth / this.cameraPos.zoom, 
+            this.viewportHeight / this.cameraPos.zoom
         );
 
         // Draw circle marking origin
@@ -390,25 +431,39 @@ export default class MainCanvas {
 
         // Draw code editor
         this.codeEditor.draw();
+
+        // Draw minimap
+        this.drawMinimap();
     }
 
     // ********************Panning and Zooming***********************
 
-    panCanvas = (dx, dy) => {
+    panCanvas = (dx, dy, render = true) => {
         let prev = this.cameraPos;
+
+        let minDx = this.cxMin - this.viewportWidth - (prev.x - this.viewportWidth) / prev.zoom;
+        let maxDx = this.cxMax - this.viewportWidth - prev.x / prev.zoom;
+
+        let minDy = this.cyMin - this.viewportHeight - (prev.y - this.viewportHeight) / prev.zoom;
+        let maxDy = this.cyMax - this.viewportHeight - prev.y / prev.zoom;
+
+        let dcx = Math.max(minDx, Math.min(maxDx, dx));
+        let dcy = Math.max(minDy, Math.min(maxDy, dy));
         
-        this.ctx.translate(dx / prev.zoom, dy / prev.zoom);
+        this.ctx.translate(dcx, dcy);
         this.cameraPos = {
-            x: prev.x + dx,
-            y: prev.y + dy,
+            x: prev.x + dcx * prev.zoom,
+            y: prev.y + dcy * prev.zoom,
             zoom: prev.zoom,
         }
 
-        this.autoSave();
-        this.render();
+        if (render) {
+            this.autoSave();
+            this.render();
+        }
     }
 
-    zoomCanvas = (x, y, delta) => {
+    zoomCanvas = (x, y, delta, render = true) => {
         let prev = this.cameraPos;
 
         let newZoom = prev.zoom + delta;
@@ -429,16 +484,18 @@ export default class MainCanvas {
         this.ctx.translate(-translateX, -translateY);
 
         // Set editor zoom
-        // this.codeEditor.editor.style.transform = `scale(${newZoom}, ${newZoom})`
-
         this.cameraPos = {
             x: x + lengthX,
             y: y + lengthY,
             zoom: newZoom,
         }
 
-        this.autoSave();
-        this.render();
+        this.panCanvas(0, 0, false);
+
+        if (render) {
+            this.autoSave();
+            this.render();
+        }
     }
 
     // ********************Event Listeners***********************
