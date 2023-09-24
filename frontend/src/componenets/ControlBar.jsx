@@ -4,6 +4,7 @@ import './ControlBar.css';
 export default function ControlBar() {
 
     const [live, setLive] = useState(false);
+    const [saveStatus, setSaveStatus] = useState("");
 
     const startEnv = () => {
         if (window.startJupyterEnv) {
@@ -12,8 +13,12 @@ export default function ControlBar() {
     }
 
     useEffect(() => {
-        window.setControlBarStatus = (live) => {
-            setLive(live);
+        window.setControlBarStatus = (status) => {
+            setLive(status);
+        }
+
+        window.setSaveStatus = (status) => {
+            setSaveStatus(status);
         }
 
         return () => {
@@ -38,6 +43,9 @@ export default function ControlBar() {
         <button className = 'cb-button'>
             ■
         </button>
+        <div>
+            {saveStatus}
+        </div>
     </div>
     )
 }

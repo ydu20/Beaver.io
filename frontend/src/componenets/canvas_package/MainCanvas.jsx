@@ -39,8 +39,8 @@ export default class MainCanvas {
     cyMax = 10000 + this.cyOffset;
     cyMin = -10000 + this.cyOffset;
 
-    loadFromServer = false;
-    saveToServer = false;
+    loadFromServer = true;
+    saveToServer = true;
 
     debounceDelay = 3000;
 
@@ -88,6 +88,14 @@ export default class MainCanvas {
 
         // Debounce timeoutID
         this.debounceID = null;
+
+        if (window.setSaveStatus) {
+            if (this.saveToServer) {
+                window.setSaveStatus("Saved");
+            } else {
+                window.setSaveStatus("Saving not enabled");
+            }
+        }
 
         // Setting up Panel from server/local
         if (this.loadFromServer) {
@@ -165,8 +173,8 @@ export default class MainCanvas {
         axios.get('/panels/1').then(res => {
             let panelData = res.data;
 
-            this.zoomCanvas(0, 0, panelData.zoom - this.cameraPos.zoom);
-            this.panCanvas(panelData.x, panelData.y);
+            this.zoomCanvas(0, 0, panelData.zoom - this.cameraPos.zoom, false);
+            this.panCanvas(panelData.x, panelData.y, false);
         
             this.tiles = panelData.tiles.map(tileData => {
                 let tile = new Tile(
@@ -196,7 +204,9 @@ export default class MainCanvas {
     }
 
     savePanel = () => {
-        // console.log('savingPanel...');
+        if (window.setSaveStatus) {
+            window.setSaveStatus("Saving...");
+        }
         let tilesData = this.tiles.map(tile => {
             return {
                 id: tile.id,
@@ -219,13 +229,22 @@ export default class MainCanvas {
 
         axios.post('/panels', panelData).then((res) => {
             console.log(res.data);
+            if (window.setSaveStatus) {
+                window.setSaveStatus("Saved");
+            }
         }).catch((err) => {
+            if (window.setSaveStatus) {
+                window.setSaveStatus("Error while saving");
+            }
             console.log(err);
         });
     }
 
     autoSave = () => {
         if (this.saveToServer) {
+            if (window.setSaveStatus) {
+                window.setSaveStatus("Not saved");
+            }
             clearTimeout(this.debounceID);
             this.debounceID = setTimeout(() => this.savePanel(), this.debounceDelay);
         }
@@ -282,8 +301,6 @@ export default class MainCanvas {
         if (!this.globalDependencies) {
             return;
         }
-
-        this.ctx.strokeStyle = 'black';
 
         this.globalDependencies.forEach((sTiles, dTile) => {
             let dL = dTile.x;
@@ -374,6 +391,9 @@ export default class MainCanvas {
     }
 
     drawArrow(x1, y1, x2, y2) {
+        this.ctx.strokeStyle = 'black';
+        this.ctx.fillStyle = 'black';
+
         let headLength = 10;   // length of the arrowhead
         let headWidth = 5;     // width of the arrowhead
     

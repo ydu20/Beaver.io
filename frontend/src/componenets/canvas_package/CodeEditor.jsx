@@ -69,6 +69,9 @@ export default class CodeEditor {
     // *****************Event Listeners********************
 
     onEditorChange = (update) => {
+        if (this.attachedTile) {
+            this.updateTileCode();
+        }
         if (update.heightChanged) {
 
             if (!this.attachedTile) {
@@ -77,7 +80,6 @@ export default class CodeEditor {
 
             let newCode = update.state.doc.toString()
 
-            this.updateTileCode();
             this.adjustHeight(update.view.dom.scrollHeight);
 
             this.updateTileDependencies(update.state, newCode);
