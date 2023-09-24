@@ -2,6 +2,7 @@ import CodeEditor from "./CodeEditor";
 import Tile from "./Tile";
 import AddButton from "./AddButton";
 import axios from '../AxiosInstance';
+import JupyterManager from "./JupyterManager";
 
 export default class MainCanvas {
 
@@ -39,8 +40,8 @@ export default class MainCanvas {
     cyMax = 10000 + this.cyOffset;
     cyMin = -10000 + this.cyOffset;
 
-    loadFromServer = true;
-    saveToServer = true;
+    loadFromServer = false;
+    saveToServer = false;
 
     debounceDelay = 3000;
 
@@ -51,8 +52,8 @@ export default class MainCanvas {
         this.window = window;
 
         // JupyterManager
-        // this.jupyterManager = new JupyterManager(window);
-        this.jupyterManager = null;
+        this.jupyterManager = new JupyterManager(window);
+        // this.jupyterManager = null;
         
         // Styling
         for (let prop in this.initialCanvasStyle) {
