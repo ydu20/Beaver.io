@@ -23,7 +23,7 @@ export default function CanvasPortal() {
         canvas.addEventListener('mousemove', (e) => mainCanvas.onMouseMove(e));
         canvas.addEventListener('wheel', (e) => mainCanvas.onWheel(e));
         
-        editorContainer.addEventListener('wheel', (e) => mainCanvas.onWheel(e));
+        editorContainer.addEventListener('wheel', (e) => {mainCanvas.onWheel(e)});
 
         return (() => {
             mainCanvas.destroy();

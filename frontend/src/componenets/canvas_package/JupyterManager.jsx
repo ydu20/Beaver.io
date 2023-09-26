@@ -13,7 +13,7 @@ export default class JupyterManager {
     
     baseUrl = 'http://localhost:8080';
     wsUrl = 'ws://localhost:8080';
-    token = 'dd578518f41dfde64d4ff07389e93d4b4d53af9f59c86baf';
+    token = 'df474fa5e2310effebfe4ef9b44c946cdcd55d99f1618043';
 
     constructor(window) {
         this.window = window;
@@ -80,30 +80,25 @@ export default class JupyterManager {
 
             future.onIOPub = msg => {
                 if (msg.header.msg_type === 'stream') {
-                    console.log("1");
-                    console.log(msg);
-                    console.log(outputs);
+                    // console.log("1");
+                    // console.log(msg);
+                    // console.log(outputs);
                     outputs = outputs + msg.content?.text;
                     console.log(outputs);
                 }
                 if (msg.header.msg_type === 'execute_result') {
-                    console.log("1")
-                    console.log(msg);
+                    // console.log("1")
+                    // console.log(msg);
 
                     outputs = outputs + msg.content.data['text/plain'];
                 }
             }
 
             let reply = await future.done;
-
-            console.log("2");
-            console.log(outputs);
-
             
-
             if (reply.content.status === 'error') {
                 outputs = outputs + `${reply.content.ename}: ${reply.content.evalue}`;
-                console.log(reply.content.execution_count);
+                // console.log(reply.content.execution_count);
             }
             
             return {

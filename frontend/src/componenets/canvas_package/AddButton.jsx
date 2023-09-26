@@ -2,9 +2,9 @@
 export default class AddButton {
     
     width = 70;
-    height = 20;
-    marginTop = -15;
-    fontStyle = 'bold 20px monospace';
+    height = 18;
+    marginTop = 7;
+    fontStyle = 'bold 18px monospace';
 
     constructor(mainCanvas) {
         this.x = 0;

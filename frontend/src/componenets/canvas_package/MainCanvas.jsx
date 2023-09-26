@@ -40,8 +40,8 @@ export default class MainCanvas {
     cyMax = 10000 + this.cyOffset;
     cyMin = -10000 + this.cyOffset;
 
-    loadFromServer = false;
-    saveToServer = false;
+    loadFromServer = true;
+    saveToServer = true;
 
     debounceDelay = 3000;
 
@@ -92,7 +92,7 @@ export default class MainCanvas {
 
         if (window.setSaveStatus) {
             if (this.saveToServer) {
-                window.setSaveStatus("Saved");
+                window.setSaveStatus("Saved!");
             } else {
                 window.setSaveStatus("Saving not enabled");
             }
@@ -186,6 +186,8 @@ export default class MainCanvas {
                     tileData.id,
                 );
                 tile.output = tileData.output;
+                tile.setTileHeight(null, tile.getOutputHeight());
+
                 tile.code = tileData.code;
 
                 this.codeEditor.startCoding(tile);
@@ -423,7 +425,7 @@ export default class MainCanvas {
 
 
     // ********************Render***********************
-    render() {
+    render(simulateClick = false, x = 0, y = 0) {
         // Assumption is tiles already sorted by z-index
 
         // Clear canvas
@@ -455,6 +457,11 @@ export default class MainCanvas {
 
         // Draw minimap
         this.drawMinimap();
+
+        // Simulate mouse click
+        if (simulateClick) {
+            this.codeEditor.simulateClick(x, y);
+        }
     }
 
     // ********************Panning and Zooming***********************
@@ -543,7 +550,7 @@ export default class MainCanvas {
             clickedTile.onClick(cvPX, cvPY);
         }
 
-        this.render();
+        this.render(true, e.clientX, e.clientY);
     }
 
     onMouseDown(e) {

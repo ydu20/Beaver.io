@@ -1,4 +1,5 @@
 import {EditorView} from "@codemirror/view";
+import {EditorSelection} from "@codemirror/state";
 import { editorExtensions } from "../editor_customizations/EditorExtensions";
 import {syntaxTree} from '@codemirror/language';
 
@@ -86,6 +87,17 @@ export default class CodeEditor {
         }
     }
 
+    // *****************simulateClick********************
+
+    simulateClick = (x, y) => {
+        if (this.attachedTile) {
+            let pos = this.editorView.posAtCoords({x, y});
+            this.editorView.dispatch({
+                selection: EditorSelection.cursor(pos),
+            });
+        }
+    }
+
     // *****************Adjust Height********************
 
     adjustHeight = (height) => {
@@ -118,31 +130,32 @@ export default class CodeEditor {
 
         let lineDivs = Array.from(document.querySelectorAll(".cm-line"));
 
-        let coloredCode = []
+        let coloredCode = [];
 
         for (let i = 0; i < lineDivs.length; i++) {
-            let line = lineDivs[i]
-            let lColoring = []
+            let line = lineDivs[i];
+            let lColoring = [];
 
             line.childNodes.forEach(node => {
                 if (node.nodeType === Node.TEXT_NODE) {
                     lColoring.push({
                         text: node.textContent,
                         color: null,
-                    })
+                    });
                 } else if (node.nodeType === Node.ELEMENT_NODE && node.tagName === "SPAN") {
                     lColoring.push({
                         text: node.textContent,
                         color: getComputedStyle(node).color,
-                    })
+                    });
                 }
             })
 
-            coloredCode.push(lColoring)
+            coloredCode.push(lColoring);
         }
         
-        this.attachedTile.code = this.editorView.state.doc.toString()
-        this.attachedTile.coloredCode = coloredCode
+        this.attachedTile.code = this.editorView.state.doc.toString();
+        this.attachedTile.coloredCode = coloredCode;
+        this.mainCanvas.autoSave();
     }
 
     // ********************Update tile dependencies***********************

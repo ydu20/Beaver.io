@@ -6,9 +6,9 @@ export default class Tile {
     innerMarginTop = 24;
     innerMarginBottom = 10;
     cornerRadius = 5;
-    editorOutputMargin = 10;
+    editorOutputMargin = -2;
     minimumEditorHeight = 35;
-    minimumOutputHeight = 35;
+    minimumOutputHeight = 0;
     minimumHeight = this.innerMarginTop + 
     this.minimumEditorHeight + 
     this.editorOutputMargin + 
@@ -72,7 +72,7 @@ export default class Tile {
         ctx.closePath();
         ctx.lineWidth = 3;
         if (this.selected === 2) {
-            ctx.strokeStyle = 'lightgreen';
+            ctx.strokeStyle = 'limegreen';
         } else if (this.selected === 1) {
             ctx.strokeStyle = '#576cf3';
         } else {
@@ -94,7 +94,7 @@ export default class Tile {
 
 
         if (this.selected === 2) {
-            ctx.strokeStyle = 'lightgreen';
+            ctx.strokeStyle = 'limegreen';
         } else {
             ctx.strokeStyle = 'silver';
         }
@@ -118,7 +118,7 @@ export default class Tile {
         // Drawing output
         this.drawText(
             ctx,
-            this.x + this.innerMarginSide + 2,
+            this.x + this.innerMarginSide - 2,
             this.y + this.innerMarginTop + this.editorHeight + this.editorOutputMargin,
             this.output
         )
@@ -241,19 +241,8 @@ export default class Tile {
         } else if (this.tileControls.insideSquare(px, py)) {
             this.mainCanvas.deleteTile(this);
         } else if (this.tileControls.insideCircle(px, py)) {
-
-            // Execute current codeblock;
-            this.jupyterManager.runCell(this.code).then(res => {
-                if (res.exeCount) {
-                    this.executionCount = res.exeCount;
-                }
-                console.log(res);
-                this.output = res.output;
-                this.mainCanvas.render();
-            }).catch(err => {
-                console.log(err);
-            })
-
+            // Execute current codeblock
+            this.executeCode();
         } else {
             if (this.selected !== 1) {
                 this.selected = 1;
@@ -265,6 +254,41 @@ export default class Tile {
 
     onBlur() {
         this.selected = 0;
+    }
+
+    // ********************Execute Code***********************
+    executeCode = () => {
+        this.jupyterManager.runCell(this.code).then(res => {
+            if (res.exeCount) {
+                this.executionCount = res.exeCount;
+            }
+            this.output = res.output;
+
+            this.setTileHeight(null, this.getOutputHeight());
+            
+            this.mainCanvas.render();
+        }).catch(err => {
+            console.log(err);
+        });
+    }
+
+    getOutputHeight = () => {
+        let lineCount = 0;
+        for (let i = 0; i < this.output.length; i++) {
+            if (this.output.charAt(i) === '\n') {
+                lineCount++;
+            }
+        }
+
+        // console.log(this.output);
+        // console.log(lineCount);
+        
+        let cHeight = lineCount == 0 ? 0 : 
+        lineCount == 1 ? 18 * (lineCount + 1) - 6.5:
+        18 * (lineCount) - 6.5;
+
+        // console.log(cHeight);
+        return cHeight;
     }
 
     // ********************IsInside functions***********************
@@ -305,13 +329,14 @@ export default class Tile {
     // ********************Reshaping functions***********************
 
     setTileHeight(eh, oh) {
-        if (eh) {
+        console.log("OH: " + oh);
+        if (eh != null) {
             this.editorHeight = Math.max(this.minimumEditorHeight, eh);
-
         }
-        if (oh) {
+        if (oh !== null) {
             this.outputHeight = Math.max(this.minimumOutputHeight, oh);
         }
+
 
         this.height = this.innerMarginTop + 
             this.editorHeight +
