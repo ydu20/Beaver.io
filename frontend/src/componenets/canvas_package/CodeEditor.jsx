@@ -1,6 +1,6 @@
-import {EditorView} from "@codemirror/view";
+import {EditorView, keymap} from "@codemirror/view";
 import {EditorSelection} from "@codemirror/state";
-import { editorExtensions } from "../editor_customizations/EditorExtensions";
+import {editorExtensions } from "../editor_customizations/EditorExtensions";
 import {syntaxTree} from '@codemirror/language';
 
 export default class CodeEditor {
@@ -24,7 +24,7 @@ export default class CodeEditor {
         'classmethod', 'getattr', 'locals', 'repr', 'zip',
         'compile', 'globals', 'map', 'reversed', '__import__',
         'complex', 'hasattr', 'max', 'round', 'delattr'
-    ])
+    ]);
 
     initialEditorContainerStyle = {
         position: 'fixed', 
@@ -32,8 +32,35 @@ export default class CodeEditor {
         zIndex: 2,
         backgroundColor: 'white',
         display: 'none',
+    };
+
+    // *****************Keymaps********************
+    executeKeymap = {
+        key: "Ctrl-Enter",
+        mac: "Meta-Enter",
+        preventDefault: true,
+        run: () => {
+            console.log("Ctrl-Enter registered");
+            if (this.attachedTile) {
+                this.attachedTile.executeCode();
+            }
+            return true;
+        }
+    };
+
+    exitKeymap = {
+        key: "Escape",
+        preventDefault: true,
+        run: () => {
+            if (this.attachedTile) {
+                this.attachedTile.setSelected(1);
+                this.mainCanvas.canvas.focus();
+                this.mainCanvas.render();
+            }
+        }
     }
 
+    // *****************Constructor********************
     constructor(editorContainer, mainCanvas) {
         this.editorContainer = editorContainer;
         this.attachedTile = null;
@@ -47,11 +74,15 @@ export default class CodeEditor {
         // EditorChange listener
         let editorChangeExt = EditorView.updateListener.of(this.onEditorChange);
 
+        // Keymap extensions
+        let customKeymaps = [this.executeKeymap, this.exitKeymap];
+        let keymapExt = keymap.of(customKeymaps);
+
         // Attach codemirror 
         this.editorView = new EditorView({
-            extensions: [editorExtensions, editorChangeExt],
+            extensions: [keymapExt, editorExtensions, editorChangeExt],
             parent: editorContainer,
-        })
+        });
     }
 
     // *****************Drawing Function********************

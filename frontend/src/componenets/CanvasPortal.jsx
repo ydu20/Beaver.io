@@ -25,6 +25,9 @@ export default function CanvasPortal() {
         
         editorContainer.addEventListener('wheel', (e) => {mainCanvas.onWheel(e)});
 
+        // Key listeners
+        canvas.addEventListener('keydown', (e) => mainCanvas.onKeyDown(e));
+
         return (() => {
             mainCanvas.destroy();
         })
@@ -34,6 +37,7 @@ export default function CanvasPortal() {
         <>
             <canvas
                 ref = {canvasRef}
+                tabIndex ="0"
             />
             <div
                 ref = {editorContainerRef}

@@ -13,7 +13,7 @@ export default class JupyterManager {
     
     baseUrl = 'http://localhost:8080';
     wsUrl = 'ws://localhost:8080';
-    token = 'df474fa5e2310effebfe4ef9b44c946cdcd55d99f1618043';
+    token = '168c502c6923f71a2da592bb2634846a60dd5ae444dc9e4a';
 
     constructor(window) {
         this.window = window;

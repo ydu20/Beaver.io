@@ -40,8 +40,8 @@ export default class MainCanvas {
     cyMax = 10000 + this.cyOffset;
     cyMin = -10000 + this.cyOffset;
 
-    loadFromServer = true;
-    saveToServer = true;
+    loadFromServer = false;
+    saveToServer = false;
 
     debounceDelay = 3000;
 
@@ -89,6 +89,10 @@ export default class MainCanvas {
 
         // Debounce timeoutID
         this.debounceID = null;
+
+        this.lastDPress = 0;
+
+        // ****Saving Loading Stuff Below****
 
         if (window.setSaveStatus) {
             if (this.saveToServer) {
@@ -139,33 +143,38 @@ export default class MainCanvas {
         this.render();
     }
 
-    // ******************** Draw Minimap ********************
-    drawMinimap = () => {
-        let vX = this.viewportWidth - this.minimapMargin - this.minimapWidth;
-        let vY = this.viewportHeight - this.minimapMargin - this.minimapWidth;
+    // ********************Find left/right/above/below tile***********************
+    leftTile = (tile) => {
 
-        let x = this.viewport2canvasX(vX);
-        let y = this.viewport2canvasY(vY);
-        let width = this.minimapWidth / this.cameraPos.zoom;
+    }
 
-        this.ctx.fillStyle = 'pink';
-        this.ctx.fillRect(x, y, width, width);
+    rightTile = (tile) => {
 
-        let vEX = (-this.cameraPos.x / this.cameraPos.zoom - this.cxMin) / (this.cxMax - this.cxMin) * this.minimapWidth;
-        let vEY = (-this.cameraPos.y / this.cameraPos.zoom - this.cyMin) / (this.cyMax - this.cyMin) * this.minimapWidth;
+    }
 
+    aboveTile = (tile) => {
 
-        let eX = this.viewport2canvasX(vX + vEX);
-        let eY = this.viewport2canvasY(vY + vEY);
-        let eWidth = (this.viewportWidth / this.cameraPos.zoom) / (this.cxMax - this.cxMin) * this.minimapWidth / this.cameraPos.zoom;
-        let eHeight = (this.viewportHeight / this.cameraPos.zoom / (this.cyMax - this.cyMin)) * this.minimapWidth / this.cameraPos.zoom;
+    }
 
-        // console.log(x + eX, y + eY, eWidth, eHeight);
-        // console.log(this.viewportWidth / this.cameraPos.zoom);
-        // console.log(this.cxMax - this.cxMin);
+    belowTile = (tile) => {
+        
+    }
 
-        this.ctx.fillStyle = 'lightgreen';
-        this.ctx.fillRect(eX, eY, eWidth, eHeight);
+    // ********************Handle Key Down Event***********************
+    onKeyDown = (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            console.log("Control-Enter Pressed");
+            if (this.selected?.tile !== null) {
+                this.selected.tile.executeCode();
+            }
+        } else if (e.key === 'd') {
+            let currTime = new Date().getTime();
+            if (currTime - this.lastDPress < 500 && this.selected.tile) {
+                this.deleteTile(this.selected.tile);
+            }
+
+            this.lastDPress = currTime;
+        }
     }
 
 
@@ -423,6 +432,34 @@ export default class MainCanvas {
         this.ctx.fill();
     }
 
+    // ******************** Draw Minimap ********************
+    drawMinimap = () => {
+        let vX = this.viewportWidth - this.minimapMargin - this.minimapWidth;
+        let vY = this.viewportHeight - this.minimapMargin - this.minimapWidth;
+
+        let x = this.viewport2canvasX(vX);
+        let y = this.viewport2canvasY(vY);
+        let width = this.minimapWidth / this.cameraPos.zoom;
+
+        this.ctx.fillStyle = 'pink';
+        this.ctx.fillRect(x, y, width, width);
+
+        let vEX = (-this.cameraPos.x / this.cameraPos.zoom - this.cxMin) / (this.cxMax - this.cxMin) * this.minimapWidth;
+        let vEY = (-this.cameraPos.y / this.cameraPos.zoom - this.cyMin) / (this.cyMax - this.cyMin) * this.minimapWidth;
+
+
+        let eX = this.viewport2canvasX(vX + vEX);
+        let eY = this.viewport2canvasY(vY + vEY);
+        let eWidth = (this.viewportWidth / this.cameraPos.zoom) / (this.cxMax - this.cxMin) * this.minimapWidth / this.cameraPos.zoom;
+        let eHeight = (this.viewportHeight / this.cameraPos.zoom / (this.cyMax - this.cyMin)) * this.minimapWidth / this.cameraPos.zoom;
+
+        // console.log(x + eX, y + eY, eWidth, eHeight);
+        // console.log(this.viewportWidth / this.cameraPos.zoom);
+        // console.log(this.cxMax - this.cxMin);
+
+        this.ctx.fillStyle = 'lightgreen';
+        this.ctx.fillRect(eX, eY, eWidth, eHeight);
+    }
 
     // ********************Render***********************
     render(simulateClick = false, x = 0, y = 0) {

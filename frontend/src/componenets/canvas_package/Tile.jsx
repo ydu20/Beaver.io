@@ -234,26 +234,51 @@ export default class Tile {
 
     onClick(px, py) {
         if (this.isInsideCodeBlock(px, py)) {
-            if (this.selected !== 2) {
-                this.selected = 2;
-                this.mainCanvas.toggleSelected({status: 2, tile: this});
-            }
+            this.setSelected(2);
         } else if (this.tileControls.insideSquare(px, py)) {
             this.mainCanvas.deleteTile(this);
         } else if (this.tileControls.insideCircle(px, py)) {
             // Execute current codeblock
             this.executeCode();
         } else {
-            if (this.selected !== 1) {
-                this.selected = 1;
-                this.mainCanvas.toggleSelected({status: 1, tile: this});
-            }
+            this.setSelected(1);
         }
         return true;
     }
 
     onBlur() {
-        this.selected = 0;
+        this.setSelected(0);
+    }
+
+    // ********************Set Selected Status***********************
+    // setSelected0 = () => {
+    //     this.selected = 0;
+    // }
+
+    // setSelected1 = () => {
+    //     if (this.selected !== 1) {
+    //         this.selected = 1 ;
+    //         this.mainCanvas.toggleSelected({status: 1, tile: this});
+    //     }
+    // }
+
+    // setSelected2 = () => {
+    //     if (this.selected !== 2) {
+    //         this.selected = 2;
+    //         this.mainCanvas.toggleSelected({status: 2, tile: this});
+    //     }
+    // }
+
+    setSelected = (status) => {
+        if (status === 0) {
+            this.selected = 0;
+        } else if (status === 1 && this.selected !== 1) {
+            this.selected = 1 ;
+            this.mainCanvas.toggleSelected({status: 1, tile: this});
+        } else if (status === 2 && this.selected !== 2) {
+            this.selected = 2;
+            this.mainCanvas.toggleSelected({status: 2, tile: this});
+        }
     }
 
     // ********************Execute Code***********************
@@ -329,7 +354,6 @@ export default class Tile {
     // ********************Reshaping functions***********************
 
     setTileHeight(eh, oh) {
-        console.log("OH: " + oh);
         if (eh != null) {
             this.editorHeight = Math.max(this.minimumEditorHeight, eh);
         }
