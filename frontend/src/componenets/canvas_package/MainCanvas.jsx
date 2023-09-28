@@ -3,6 +3,7 @@ import Tile from "./Tile";
 import AddButton from "./AddButton";
 import axios from '../AxiosInstance';
 import JupyterManager from "./JupyterManager";
+import Flow from "./Flow";
 
 export default class MainCanvas {
 
@@ -52,8 +53,8 @@ export default class MainCanvas {
         this.window = window;
 
         // JupyterManager
-        this.jupyterManager = new JupyterManager(window);
-        // this.jupyterManager = null;
+        // this.jupyterManager = new JupyterManager(window);
+        this.jupyterManager = null;
         
         // Styling
         for (let prop in this.initialCanvasStyle) {
@@ -78,6 +79,7 @@ export default class MainCanvas {
         // Global Dependencies
         this.globalDependencies = new Map();
 
+        // Camera Position & Tiles
         this.cameraPos = {
             x: 0,
             y: 0,
@@ -87,9 +89,13 @@ export default class MainCanvas {
         this.maxZIndex = -1;
         this.maxTileId = -1;
 
+        // Flow
+        this.flow = new Flow(this);
+
         // Debounce timeoutID
         this.debounceID = null;
-
+        
+        // Last D key press (for delete shortcut)
         this.lastDPress = 0;
 
         // ****Saving Loading Stuff Below****
@@ -144,26 +150,51 @@ export default class MainCanvas {
     }
 
     // ********************Find left/right/above/below tile***********************
-    leftTile = (tile) => {
 
-    }
+    findTile = (tile, dir) => {
+        let target = null;
+        let xMaxDiff = tile.width * 2;
+        let yMaxDiff = tile.height;
 
-    rightTile = (tile) => {
+        let tileCentX = tile.x + tile.width / 2;
+        let tileCentY = tile.y + tile.height / 2;
+        let targetDist = -1;
 
-    }
+        this.tiles.map(nt => {
+            if (nt === tile) {
+                return;
+            }
+            let diffX = Math.abs(nt.x - tile.x);
+            let diffY = Math.abs(nt.y - tile.y);
 
-    aboveTile = (tile) => {
+            if (dir === 'left' || dir === 'right') {
+                var xWeight = 2;
+                var yWeight = 1;
+            } else {
+                var xWeight = 1;
+                var yWeight = 3;
+            }
 
-    }
+            let dist = (xWeight * (nt.x + nt.width / 2 - tileCentX)) ** 2 + (yWeight * (nt.y + nt.height / 2 - tileCentY)) ** 2;
 
-    belowTile = (tile) => {
-        
+            if (targetDist < 0 || targetDist > dist) {
+                if (
+                    (dir === 'left' && nt.x < tile.x && diffY <= yMaxDiff) ||
+                    (dir === 'right' && nt.x > tile.x && diffY <= yMaxDiff) ||
+                    (dir === 'up' && nt.y < tile.y && diffX <= xMaxDiff) ||
+                    (dir === 'down' && nt.y > tile.y && diffX <= xMaxDiff)
+                ) {
+                    target = nt;
+                    targetDist = dist;
+                }
+            }
+        });
+        return target;
     }
 
     // ********************Handle Key Down Event***********************
     onKeyDown = (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-            console.log("Control-Enter Pressed");
             if (this.selected?.tile !== null) {
                 this.selected.tile.executeCode();
             }
@@ -172,11 +203,28 @@ export default class MainCanvas {
             if (currTime - this.lastDPress < 500 && this.selected.tile) {
                 this.deleteTile(this.selected.tile);
             }
-
             this.lastDPress = currTime;
-        }
-    }
+        } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown' 
+                || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+            
+            let direction = e.key === 'ArrowUp' ? 'up' :
+                e.key === 'ArrowDown' ? 'down':
+                e.key === 'ArrowLeft' ? 'left':
+                'right';
 
+            if (this.selected.tile) {
+                let neighbor = this.findTile(this.selected.tile, direction);
+                if (neighbor) {
+                    this.selected.tile.setSelected(0);
+                    neighbor.setSelected(1);
+                    this.maxZIndex += 1;
+                    neighbor.zIndex = this.maxZIndex;
+                    this.tiles.sort((a, b) => a.zIndex - b.zIndex);
+                    this.render();
+                }
+            }
+        } 
+    }
 
     // ********************Loading / Saving***********************
     loadPanel = () => {
@@ -210,7 +258,7 @@ export default class MainCanvas {
                 return tile;
             });
 
-            this.updateGlobalDependencies();
+            this.updateEntireGraph();
             this.render();
         });
     }
@@ -262,176 +310,6 @@ export default class MainCanvas {
         }
     }
 
-    // ********************Update Global Dependencies***********************
-    
-    // n^2*max(tile.dependencies.size) operation -- very inefficient
-    updateGlobalDependencies = () => {
-        this.globalDependencies = new Map();
-        this.tiles?.forEach((tile) => {
-            // console.log(tile.id + ": " + tile.code);
-            // console.log(tile.dependencies);
-            // console.log(tile.variables);
-            if (tile.dependencies) {
-                tile.dependencies.forEach(varName => {
-                    let parent = this.findParent(varName, tile.id);
-                    if (parent) {
-                        if (this.globalDependencies.has(tile)) {
-                            this.globalDependencies.get(tile).push(parent);
-                        } else {
-                            this.globalDependencies.set(tile, [parent]);
-                        }
-                    }
-                })
-            }
-        });
-
-        // this.globalDependencies.forEach((val, key) => {
-        //     console.log([key, val]);
-        // });
-    }
-
-    findParent(varName, id) {
-        let maxId = -1;
-        let parent = null;
-        this.tiles.forEach((tile) => {
-            if (
-                tile.id !== id &&
-                tile.variables &&
-                tile.variables.has(varName) &&
-                tile.id > maxId
-            ) {
-                parent = tile;
-                maxId = parent.id;
-            }
-        })
-        return parent;
-    }
-
-    // ********************Drawing Global Dependencies***********************
-
-    drawFlow() {
-        if (!this.globalDependencies) {
-            return;
-        }
-
-        this.globalDependencies.forEach((sTiles, dTile) => {
-            let dL = dTile.x;
-            let dR = dTile.x + dTile.width;
-            let dM = (dL + dR) / 2;
-
-            sTiles.forEach(sTile => {
-
-                let sL = sTile.x;
-                let sR = sTile.x + sTile.width;
-                let sM = (sL + sR) / 2;
-
-                // console.log("Drawing line...")
-                // console.log([sTile, dTile]);
-                // console.log([dL, dR, dM, sL, sR, sM]);
-
-                // Case 1
-                if (dM > sL && dM < sR) {
-                    if (dTile.y > sTile.y) {
-                        this.drawArrow(
-                            sM,
-                            sTile.y + sTile.height,
-                            dM,
-                            dTile.y
-                        );
-                    } else {
-                        this.drawArrow(
-                            sM,
-                            sTile.y,
-                            dM,
-                            dTile.y + dTile.height,
-                        );
-                    }
-                } 
-                // Case 2
-                else if (dM <= sL && dR >= sL) {
-                    if (dTile.y > sTile.y) {
-                        this.drawArrow(
-                            sL,
-                            sTile.y + sTile.height / 2,
-                            dM,
-                            dTile.y,
-                        );
-                    } else {
-                        this.drawArrow(
-                            sL,
-                            sTile.y + sTile.height / 2,
-                            dM,
-                            dTile.y + dTile.height,
-                        );
-                    }
-                } else if (dM >= sR && dL <= sR) {
-                    if (dTile.y > sTile.y) {
-                        this.drawArrow(
-                            sR,
-                            sTile.y + sTile.height / 2,
-                            dM,
-                            dTile.y,
-                        );
-                    } else {
-                        this.drawArrow(
-                            sR,
-                            sTile.y + sTile.height / 2,
-                            dM,
-                            dTile.y + dTile.height,
-                        );
-                    }
-                }
-                // Case 3
-                else if (dR < sL) {
-                    this.drawArrow(
-                        sL,
-                        sTile.y + sTile.height / 2,
-                        dR,
-                        dTile.y + dTile.height / 2,
-                    );
-                } else {
-                    this.drawArrow(
-                        sR,
-                        sTile.y + sTile.height / 2,
-                        dL,
-                        dTile.y + dTile.height / 2,
-                    );
-                }
-
-            });
-        });
-    }
-
-    drawArrow(x1, y1, x2, y2) {
-        this.ctx.strokeStyle = 'black';
-        this.ctx.fillStyle = 'black';
-
-        let headLength = 10;   // length of the arrowhead
-        let headWidth = 5;     // width of the arrowhead
-    
-        // Calculate angle of the line
-        let angle = Math.atan2(y2 - y1, x2 - x1);
-        
-        // Calculate angles for the sides of the arrowhead
-        let angle1 = Math.atan2(headWidth / 2, headLength);
-        let angle2 = -angle1;
-    
-        // Draw the main line of the arrow
-        this.ctx.beginPath();
-        this.ctx.moveTo(x1, y1);
-        this.ctx.lineTo(x2, y2);
-        this.ctx.stroke();
-    
-        // Draw the arrowhead
-        this.ctx.beginPath();
-        this.ctx.moveTo(x2, y2);
-        this.ctx.lineTo(x2 - headLength * Math.cos(angle + angle1), y2 - headLength * Math.sin(angle + angle1));
-        this.ctx.lineTo(x2 - headLength * Math.cos(angle + angle2), y2 - headLength * Math.sin(angle + angle2));
-        this.ctx.lineTo(x2, y2);
-        this.ctx.closePath();
-        this.ctx.fill();
-    }
-
     // ******************** Draw Minimap ********************
     drawMinimap = () => {
         let vX = this.viewportWidth - this.minimapMargin - this.minimapWidth;
@@ -480,7 +358,7 @@ export default class MainCanvas {
         this.ctx.stroke();
 
         // Draw dependency flow
-        this.drawFlow();
+        this.flow.draw(this.ctx);
 
         // Draw tiles layered by z indices
         this.tiles.map(tile => {tile.draw(this.ctx);});
@@ -754,17 +632,19 @@ export default class MainCanvas {
 
         if (this.selected.status !== 2 && selected.status === 2) {
             this.codeEditor.startCoding(selected.tile);
+
         } else if (this.selected.status === 2 && selected.status !== 2) {
             this.codeEditor.endCoding();
-        } else if (this.selected.status === 2 && selected.status === 2 &&
-            this.selected.tile !== selected.tile) {
-                this.codeEditor.endCoding();
-                this.codeEditor.startCoding(selected.tile);
-            }
+        } else if (
+            this.selected.status === 2 && selected.status === 2 &&
+            this.selected.tile !== selected.tile
+        ) {
+            this.codeEditor.endCoding();
+            this.codeEditor.startCoding(selected.tile);
+        }
         this.selected = selected;
-
-        // this.render();
     }
+
 
     // ********************Add/delete tiles***********************
     addTile(tile) {

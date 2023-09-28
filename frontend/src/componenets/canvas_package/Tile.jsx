@@ -52,9 +52,9 @@ export default class Tile {
         // Execution Count
         this.executionCount = -1;
 
-        // Dependencies & Variables
-        this.dependencies = null;
-        this.variables = null;
+        // Dependent & Independent variables
+        this.dependencies = new Set();
+        this.independencies = new Set();
 
         // ID
         this.id = id;
@@ -199,6 +199,21 @@ export default class Tile {
         })
     }
 
+    // ***********************Distance to Another Tile***********************
+    distanceTo = (tile) => {
+        // Actually distance squared
+        if (this.x < tile.x + tile.width && 
+            this.x + this.width > tile.x && 
+            this.y < tile.y + tile.height && 
+            this.y + this.height > tile.y) {
+          return 0;
+        }
+
+        let dx = Math.max(this.x - (tile.x + tile.width), tile.x - (this.x + this.width), 0);
+        let dy = Math.max(this.y - (tile.y + tile.height), tile.y - (this.y + this.height), 0);
+        return dx * dx + dy * dy;
+    }
+
 
     // ********************Event Listeners***********************
     // Events return true if need re-render, false otherwise.
@@ -251,23 +266,6 @@ export default class Tile {
     }
 
     // ********************Set Selected Status***********************
-    // setSelected0 = () => {
-    //     this.selected = 0;
-    // }
-
-    // setSelected1 = () => {
-    //     if (this.selected !== 1) {
-    //         this.selected = 1 ;
-    //         this.mainCanvas.toggleSelected({status: 1, tile: this});
-    //     }
-    // }
-
-    // setSelected2 = () => {
-    //     if (this.selected !== 2) {
-    //         this.selected = 2;
-    //         this.mainCanvas.toggleSelected({status: 2, tile: this});
-    //     }
-    // }
 
     setSelected = (status) => {
         if (status === 0) {

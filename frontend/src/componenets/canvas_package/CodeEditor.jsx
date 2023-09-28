@@ -200,14 +200,14 @@ export default class CodeEditor {
 
         this.handleTopLevel(cursor, envStack, dependencies, code);
 
-        let updatedVars = new Set();
-        envStack.forEach(v => v.forEach(v2 => updatedVars.add(v2)));
+        let independencies = new Set();
+        envStack.forEach(v => v.forEach(v2 => independencies.add(v2)));
 
         this.attachedTile.dependencies = dependencies;
-        this.attachedTile.variables = updatedVars;
+        this.attachedTile.independencies = independencies;
 
-        // Update global dependencies
-        this.mainCanvas.updateGlobalDependencies();
+        // Update flow graph
+        this.mainCanvas.flow.updateEntireGraph();
     }
 
     handleTopLevel = (cursor, envStack, deps, code) => {
