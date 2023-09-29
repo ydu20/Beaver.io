@@ -40,7 +40,6 @@ export default class CodeEditor {
         mac: "Meta-Enter",
         preventDefault: true,
         run: () => {
-            console.log("Ctrl-Enter registered");
             if (this.attachedTile) {
                 this.attachedTile.executeCode();
             }
@@ -112,7 +111,9 @@ export default class CodeEditor {
 
             let newCode = update.state.doc.toString()
 
-            this.adjustHeight(update.view.dom.scrollHeight);
+            if (update.view.dom.scrollHeight !== 0) {
+                this.adjustHeight(update.view.dom.scrollHeight);
+            }
 
             this.updateTileDependencies(update.state, newCode);
         }
@@ -132,8 +133,8 @@ export default class CodeEditor {
     // *****************Adjust Height********************
 
     adjustHeight = (height) => {
-        this.attachedTile.setTileHeight(height, null)
-        this.mainCanvas.render()
+        this.attachedTile.setTileHeight(height, null);
+        this.mainCanvas.render();
     }
 
     // *****************Toggle coding functions********************
@@ -145,8 +146,8 @@ export default class CodeEditor {
         let tr = this.editorView.state.update({
             changes: {from: 0, to: this.editorView.state.doc.length, insert: tile.code}, 
             scrollIntoView: true,
-        })
-        this.editorView.dispatch(tr)
+        });
+        this.editorView.dispatch(tr);
     }
 
     endCoding() {
@@ -247,48 +248,48 @@ export default class CodeEditor {
         // Recursive case
         if (nodeType === 'AssignStatement') {
             // Remember modified var, then handle rhs first
-            cursor.firstChild()
-            let modVar = null
+            cursor.firstChild();
+            let modVar = null;
             if (cursor.node.type.name === 'VariableName') {
-                modVar = code.substring(cursor.from, cursor.to)
+                modVar = code.substring(cursor.from, cursor.to);
             } else if (cursor.node.type.name === 'MemberExpression') {
-                cursor.firstChild()
-                modVar = code.substring(cursor.from, cursor.to)
+                cursor.firstChild();
+                modVar = code.substring(cursor.from, cursor.to);
                 if (!this.varInEnv(modVar, envStack)) {
-                    deps.add(modVar)
+                    deps.add(modVar);
                 }
-                cursor.parent()
+                cursor.parent();
             }
 
-            cursor.nextSibling()
+            cursor.nextSibling();
 
             do {
-                this.recurseST(cursor, envStack, deps, code)
-            } while (cursor.nextSibling())
+                this.recurseST(cursor, envStack, deps, code);
+            } while (cursor.nextSibling());
             
             cursor.parent()
 
             if (modVar) {
                 
-                envStack[envStack.length - 1].add(modVar)
+                envStack[envStack.length - 1].add(modVar);
             }
         } else if (['BinaryExpression', 'Body', 'ReturnStatement',
             'CallExpression', 'ExpressionStatement', 'ArgList'].includes(nodeType)) {
             // Go down a level and iterate
-            cursor.firstChild()
+            cursor.firstChild();
             do {
                 this.recurseST(cursor, envStack, deps, code)
-            } while (cursor.nextSibling())
+            } while (cursor.nextSibling());
             cursor.parent()
         } if (nodeType === 'FunctionDefinition') {
 
             // Add function name to environment
-            cursor.firstChild()
-            cursor.nextSibling()
+            cursor.firstChild();
+            cursor.nextSibling();
             if (cursor.node.type.name === 'VariableName') {
-                envStack[envStack.length - 1].add(code.substring(cursor.from, cursor.to))
+                envStack[envStack.length - 1].add(code.substring(cursor.from, cursor.to));
             }
-            cursor.parent()
+            cursor.parent();
 
             // Iterate through function
             cursor.firstChild()

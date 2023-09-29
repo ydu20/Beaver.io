@@ -92,6 +92,8 @@ export default class MainCanvas {
         // Flow
         this.flow = new Flow(this);
 
+
+
         // Debounce timeoutID
         this.debounceID = null;
         
@@ -501,7 +503,7 @@ export default class MainCanvas {
             } else {
                 tile.onBlur();
             }
-        })
+        });
 
         // Handle case of no tile selected
         if (!pressedTile && this.selected.status) {
@@ -520,7 +522,7 @@ export default class MainCanvas {
         let reRender = false;
         this.tiles.map(tile => {
             reRender = reRender || tile.onMouseUp();
-        })
+        });
 
         if (!this.addButton.tile && this.selected.status) {
             this.addButton.attachTo(this.selected.tile);

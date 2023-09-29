@@ -244,6 +244,7 @@ export default class Tile {
     onMouseMove(px, py) {
         if (this.drag) {
             this.moveTo(px, py);
+            this.mainCanvas.flow.updateFlowByPosChange(this);
             return true;
         } else {
             return false;
@@ -369,7 +370,6 @@ export default class Tile {
         if (oh !== null) {
             this.outputHeight = Math.max(this.minimumOutputHeight, oh);
         }
-
 
         this.height = this.innerMarginTop + 
             this.editorHeight +
