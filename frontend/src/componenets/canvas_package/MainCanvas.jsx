@@ -223,7 +223,13 @@ export default class MainCanvas {
                     this.render();
                 }
             }
-        } 
+        } else if (e.key === 'Enter') {
+            if (this.selected.status === 1) {
+                e.preventDefault();
+                this.selected.tile.setSelected(2);
+                this.render();
+            }
+        }
     }
 
     // ********************Loading / Saving***********************
@@ -258,7 +264,7 @@ export default class MainCanvas {
                 return tile;
             });
 
-            this.updateEntireGraph();
+            this.flow.updateEntireGraph();
             this.render();
         });
     }

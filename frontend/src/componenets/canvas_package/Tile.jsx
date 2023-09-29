@@ -182,8 +182,9 @@ export default class Tile {
         x += 4
         this.coloredCode.forEach(line => {
             let currentX = x
-            line.forEach(block => {
 
+            for (let block of line) {
+                let stop = false;
                 if (block.color) {
                     ctx.fillStyle = block.color
                 } else {
@@ -193,8 +194,16 @@ export default class Tile {
                 for (let char of block.text) {
                     ctx.fillText(char, currentX, y)
                     currentX += charWidth
+                    if (currentX + charWidth >= this.x + this.width - this.innerMarginSide) {
+                        stop = true;
+                        break;
+                    }
                 }
-            })
+                if (stop) {
+                    break;
+                }
+                
+            }
             y += lineHeight;
         })
     }
@@ -284,6 +293,8 @@ export default class Tile {
         this.jupyterManager.runCell(this.code).then(res => {
             if (res.exeCount) {
                 this.executionCount = res.exeCount;
+            } else {
+                this.executionCount = -1;
             }
             this.output = res.output;
 

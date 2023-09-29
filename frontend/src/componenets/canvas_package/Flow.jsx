@@ -2,7 +2,6 @@
 
 export default class Flow {
 
-
     constructor(mainCanvas) {
         this.mainCanvas = mainCanvas;
 
@@ -15,18 +14,16 @@ export default class Flow {
         this.globalDependencies = new Map();
     }
 
-
     // ********************Update Flow***********************
 
     updateGraph = (tile, deps, indeps, depsOld, indepsOld) => {
-        let depsAdded = setDifference(deps, depsOld);
-        let depsDeleted = setDifference(depsOld, deps);
-        let indepsAdded = setDifference(indeps, indepsOld);
-        let indepsDeleted = setDifference(indepsOld, indeps);
-
+        let depsAdded = this.setDifference(deps, depsOld);
+        let depsDeleted = this.setDifference(depsOld, deps);
+        let indepsAdded = this.setDifference(indeps, indepsOld);
+        let indepsDeleted = this.setDifference(indepsOld, indeps);
+        
         this.mainCanvas.tiles?.forEach(nTile => {
             if (nTile !== tile) {
-
                 if (nTile.independencies) {
                     // Process depsAdded
                     depsAdded.forEach(varName => {
@@ -42,7 +39,6 @@ export default class Flow {
                         }
                     });
                 }
-
                 if (nTile.dependencies) {
                     // Process indepsAdded
                     indepsAdded.forEach(varName => {
@@ -60,15 +56,16 @@ export default class Flow {
                 }
             }
         });
+        // this.updateAllFlow();
     }
 
     setDifference = (setA, setB) => {
         let difference = []
-        for (let e of setA) {
-            if (!setB.has(e)) {
+        setA?.forEach(e => {
+            if (!setB?.has(e)) {
                 difference.push(e);
             }
-        }
+        });
         return difference;
     }
 
@@ -103,13 +100,8 @@ export default class Flow {
     }
 
     updateEntireGraph = () => {
-        console.log("Updating graph...");
         let graph = new Map();
         this.mainCanvas.tiles?.forEach((tile) => {
-            // console.log("******New Tile*****");
-
-            // console.log(tile);
-
             let children = new Map();
 
             tile.independencies.forEach(varName => {
@@ -119,14 +111,11 @@ export default class Flow {
                 }
             });
 
-            // console.log(children);
             if (children.size > 0) {
                 graph.set(tile, children);
             }
         });
         this.graph = graph;
-        console.log(graph);
-        this.updateAllFlow();
     }
 
     findChildren = (varName, tile) => {
@@ -140,7 +129,6 @@ export default class Flow {
     }
 
     updateAllFlow = () => {
-        console.log("Updating reverse flow...");
         this.reverseFlow = new Map();
         this.graph.forEach((vars, src) => {
             let edgeMem = new Map();
@@ -158,8 +146,6 @@ export default class Flow {
                 });
             })
         });
-
-        console.log(this.reverseFlow);
     }
 
 
@@ -181,6 +167,8 @@ export default class Flow {
 
     // *****************Drawing Function********************
     draw = (ctx) => {
+        this.updateAllFlow();
+
         this.reverseFlow.forEach((vars, tgt) => {
             let dL = tgt.x;
             let dR = tgt.x + tgt.width;
@@ -301,45 +289,4 @@ export default class Flow {
         ctx.closePath();
         ctx.fill();
     }
-
-
-
-
-    // ********************Update Global Dependencies (Not used) ***********************
-    updateGlobalDependencies = () => {
-        this.globalDependencies = new Map();
-        this.mainCanvas.tiles?.forEach((tile) => {
-            if (tile.dependencies) {
-                tile.dependencies.forEach(varName => {
-                    let parent = this.findParent(varName, tile.id);
-                    if (parent) {
-                        if (this.globalDependencies.has(tile)) {
-                            this.globalDependencies.get(tile).push(parent);
-                        } else {
-                            this.globalDependencies.set(tile, [parent]);
-                        }
-                    }
-                })
-            }
-        });
-    }
-
-    findParent(varName, id) {
-        let maxId = -1;
-        let parent = null;
-        this.mainCanvas.tiles.forEach((tile) => {
-            if (
-                tile.id !== id &&
-                tile.variables &&
-                tile.variables.has(varName) &&
-                tile.id > maxId
-            ) {
-                parent = tile;
-                maxId = parent.id;
-            }
-        })
-        return parent;
-    }
-
-
 }

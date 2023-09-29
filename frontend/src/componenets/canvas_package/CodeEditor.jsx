@@ -203,11 +203,21 @@ export default class CodeEditor {
         let independencies = new Set();
         envStack.forEach(v => v.forEach(v2 => independencies.add(v2)));
 
+        let dependenciesOld = this.attachedTile.dependencies;
+        let independenciesOld = this.attachedTile.independencies;
+
         this.attachedTile.dependencies = dependencies;
         this.attachedTile.independencies = independencies;
 
         // Update flow graph
-        this.mainCanvas.flow.updateEntireGraph();
+        // this.mainCanvas.flow.updateEntireGraph();
+        this.mainCanvas.flow.updateGraph(
+            this.attachedTile,
+            dependencies,
+            independencies,
+            dependenciesOld,
+            independenciesOld,
+        );
     }
 
     handleTopLevel = (cursor, envStack, deps, code) => {
