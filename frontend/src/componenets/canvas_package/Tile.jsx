@@ -92,7 +92,6 @@ export default class Tile {
             this.editorHeight
         );
 
-
         if (this.selected === 2) {
             ctx.strokeStyle = 'limegreen';
         } else {

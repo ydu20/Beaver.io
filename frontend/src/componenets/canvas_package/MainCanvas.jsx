@@ -217,12 +217,13 @@ export default class MainCanvas {
             if (this.selected.tile) {
                 let neighbor = this.findTile(this.selected.tile, direction);
                 if (neighbor) {
-                    this.selected.tile.setSelected(0);
-                    neighbor.setSelected(1);
-                    this.maxZIndex += 1;
-                    neighbor.zIndex = this.maxZIndex;
-                    this.tiles.sort((a, b) => a.zIndex - b.zIndex);
-                    this.render();
+                    this.goToTile(neighbor);
+                    // this.selected.tile.setSelected(0);
+                    // neighbor.setSelected(1);
+                    // this.maxZIndex += 1;
+                    // neighbor.zIndex = this.maxZIndex;
+                    // this.tiles.sort((a, b) => a.zIndex - b.zIndex);
+                    // this.render();
                 }
             }
         } else if (e.key === 'Enter') {
@@ -231,7 +232,29 @@ export default class MainCanvas {
                 this.selected.tile.setSelected(2);
                 this.render();
             }
+        } else if (e.key === 'Tab') {
+            e.preventDefault();
+            if (this.selected.tile) {
+                if (e.shiftKey) {
+                    this.goToTile(this.flow.prevInFlow(this.selected.tile));
+                } else {
+                    this.goToTile(this.flow.nextInFlow(this.selected.tile));
+                }
+            }
         }
+
+    }
+
+    goToTile = (dest) => {
+        if (!dest || !this.selected.tile) {
+            return;
+        }
+        this.selected.tile.setSelected(0);
+        dest.setSelected(1);
+        this.maxZIndex += 1;
+        dest.zIndex = this.maxZIndex;
+        this.tiles.sort((a, b) => a.zIndex - b.zIndex);
+        this.render();
     }
 
     // ********************Loading / Saving***********************
@@ -677,6 +700,8 @@ export default class MainCanvas {
         if (this.selected.tile === tile) {
             this.toggleSelected({status: 0, tile: null});
         }
+
+        this.flow.updateGraph(tile, null, null, tile.dependencies, tile.independencies);
         this.tiles.splice(this.tiles.indexOf(tile), 1);
         
         this.render();

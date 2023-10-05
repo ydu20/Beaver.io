@@ -9,16 +9,100 @@ export default class Flow {
 
         this.reverseGraph = new Map(); // <Tile, Map<String, Set<Tile>>>
 
-        // Flow field might not be needed bc. very similar to edges
-        // this.flow = new Map(); 
-        this.reverseFlow = new Map(); // <Tile, Map<String, {Tile, Float}>>
+        // this.flow = new Map(); // <Tile, Map<String, Set<Tile>>>
+        this.reverseFlow = new Map(); // <Tile, Map<String, {tgt: Tile, dist: Float}>>
 
         this.globalDependencies = new Map();
+
+        this.flowOrderMap = null;
+    }
+
+    // ********************Calculate flow order***********************
+    getFlowOrder = () => {
+        if (this.flowOrderMap !== null) {
+            return this.flowOrderMap;
+        }
+
+        // Need to construct flow base on reverseFlow
+        let flow = new Map();
+        this.reverseFlow.forEach((varParents, tgt) => {
+            varParents.forEach((srcObj, varName) => {
+                this.setEdge(srcObj.tgt, tgt, varName, flow);    
+            });
+        });
+
+        let tilesByY = this.mainCanvas.tiles.slice().sort((a, b) => a.y - b.y);
+        let flowOrderArray = [];
+        let discovered = new Set();
+
+        for (let tile of tilesByY) {
+            if (!discovered.has(tile)) {
+                this.bfs(tile, flow, flowOrderArray, discovered);
+            }
+        }
+        // Convert flowOrder to a tile -> tile map
+
+        let flowOrderMap = new Map();
+        for (let i = 0; i < flowOrderArray.length - 1; i++) {
+            flowOrderMap.set(flowOrderArray[i], flowOrderArray[i+1]);
+        }        
+        this.flowOrderMap = flowOrderMap;
+        return flowOrderMap;
+    }
+
+    nextInFlow = (tile) => {
+        if (this.flowOrderMap === null) {
+            console.log("HERE");
+            this.getFlowOrder();
+        }
+        return this.flowOrderMap.get(tile);
+    }
+    
+    prevInFlow = (tile) => {
+        if (this.flowOrderMap === null) {
+            this.getFlowOrder();
+        }
+        for (let [curr, next] of this.flowOrderMap) {
+            if (next === tile) {
+                return curr;
+            }
+        }
+        return null;
+    }
+
+    bfs = (src, flow, flowOrderArray, discovered) => {
+        let iterList = [src];
+
+        while (iterList.length > 0) {
+            flowOrderArray.push(...iterList);
+            let nextIterList = [];
+            for (let tile of iterList) {
+                // Check if tile has already been visited
+                if (!discovered.has(tile)) {
+                    // Add tile to discovered
+                    discovered.add(tile);
+
+                    // Iterate through children
+                    if (flow.has(tile)) {
+                        let allChildren = new Set();
+                        flow.get(tile).forEach((children, _) => {
+                            children.forEach(child => {
+                                allChildren.add(child);
+                            });
+                        });
+                        let sortedChildren = [...allChildren].sort((a, b) => a.x - b.x);
+                        nextIterList.push(...sortedChildren);
+                    }
+                }
+            }
+            iterList = nextIterList;
+        }
     }
 
     // ********************Update Flow***********************
 
     updateGraph = (tile, deps, indeps, depsOld, indepsOld) => {
+        this.flowOrderMap = null;
         let depsAdded = this.setDifference(deps, depsOld);
         let depsDeleted = this.setDifference(depsOld, deps);
         let indepsAdded = this.setDifference(indeps, indepsOld);
@@ -30,16 +114,16 @@ export default class Flow {
                     // Process depsAdded
                     depsAdded.forEach(varName => {
                         if (nTile.independencies.has(varName)) {
-                            this.addEdge(nTile, tile, varName, this.graph);
-                            this.addEdge(tile, nTile, varName, this.reverseGraph);
+                            this.setEdge(nTile, tile, varName, this.graph);
+                            this.setEdge(tile, nTile, varName, this.reverseGraph);
                         }
                     });
 
                     // Process depsDeleted
                     depsDeleted.forEach(varName => {
                         if (nTile.independencies.has(varName)) {
-                            this.deleteEdge(nTile, tile, varName, this.graph);
-                            this.deleteEdge(tile, nTile, varName, this.reverseGraph);
+                            this.removeEdge(nTile, tile, varName, this.graph);
+                            this.removeEdge(tile, nTile, varName, this.reverseGraph);
                         }
                     });
                 }
@@ -47,16 +131,16 @@ export default class Flow {
                     // Process indepsAdded
                     indepsAdded.forEach(varName => {
                         if (nTile.dependencies.has(varName)) {
-                            this.addEdge(tile, nTile, varName, this.graph);
-                            this.addEdge(nTile, tile, varName, this.reverseGraph);
+                            this.setEdge(tile, nTile, varName, this.graph);
+                            this.setEdge(nTile, tile, varName, this.reverseGraph);
                         }
                     });
 
                     // Process indepsDeleted
                     indepsDeleted.forEach(varName => {
                         if (nTile.dependencies.has(varName)) {
-                            this.deleteEdge(tile, nTile, varName, this.graph);
-                            this.deleteEdge(nTile, tile, varName, this.reverseGraph);
+                            this.removeEdge(tile, nTile, varName, this.graph);
+                            this.removeEdge(nTile, tile, varName, this.reverseGraph);
                         }
                     });
                 }
@@ -77,7 +161,7 @@ export default class Flow {
         return difference;
     }
 
-    addEdge = (src, dest, varName, graph) => {
+    setEdge = (src, dest, varName, graph) => {
         if (graph.has(src)) {
             if (graph.get(src).has(varName)) {
                 graph.get(src).get(varName).add(dest);
@@ -95,7 +179,7 @@ export default class Flow {
         }
     }
 
-    deleteEdge = (src, dest, varName, graph) => {
+    removeEdge = (src, dest, varName, graph) => {
         graph.get(src).get(varName).delete(dest);
         
         // Delete empty sets
@@ -108,6 +192,7 @@ export default class Flow {
     }
 
     updateEntireGraph = () => {
+        this.flowOrderMap = null;
         let graph = new Map();
         this.mainCanvas.tiles?.forEach((tile) => {
             let children = new Map();
@@ -124,9 +209,9 @@ export default class Flow {
                 graph.set(tile, children);
                 children.forEach((varChildren, varName) => {
                     varChildren.forEach(child => {
-                        this.addEdge(child, tile, varName, this.reverseGraph);
+                        this.setEdge(child, tile, varName, this.reverseGraph);
                     });
-                })
+                });
             }
         });
         this.graph = graph;
@@ -143,6 +228,7 @@ export default class Flow {
     }
 
     updateAllFlow = () => {
+        this.flowOrderMap = null;
         this.reverseFlow = new Map();
         this.graph.forEach((vars, src) => {
             let distMem = new Map();
@@ -155,6 +241,7 @@ export default class Flow {
                     let dist = distMem.get(tgt);
 
                     if (!(this.getReverseFlowEdge(tgt, varName)?.dist < dist)) {
+                        // Add Reverse Flow Edge
                         this.setReverseFlowEdge(tgt, varName, src, dist);
                     }
                 });
@@ -163,12 +250,56 @@ export default class Flow {
     }
 
     updateFlowByPosChange = (tile) => {
+        this.flowOrderMap = null;
         let distMem = new Map();
         // Update inflows
         this.updateInflows(tile, distMem);
 
         // Update outflows
         this.updateOutflows(tile);
+    }
+
+    updateFlowByVarChange = (tile, depsAdded, depsDeleted, indepsAdded, indepsDeleted) => {
+        this.flowOrderMap = null;
+        let distMem = new Map();
+
+        // Process depsAdded
+        this.updateInflows(tile, distMem, depsAdded);
+        
+        // Process depsDeleted
+        let varParents = this.reverseFlow.get(tile);
+        varParents?.forEach((_, varName) => {
+            if (depsDeleted.has(varName)) {
+                this.removeReverseFlowEdge(tile, varName);
+            }
+        });
+        
+        // Process indepsAdded
+        this.updateOutflows(tile, indepsAdded);
+       
+        // Process indepsDeleted
+        let affectedChildren = new Map(); // tile -> set(varName)
+
+        this.reverseFlow.forEach((varParent, child) => {
+            varParent.forEach((_, varName) => {
+                if (indepsDeleted.has(varName)) {
+                    varParent.delete(varName);
+                    if (!affectedChildren.has(child)) {
+                        affectedChildren.set(child, new Set([varName]));
+                    } else {
+                        affectedChildren.get(child).add(varName);
+                    }
+                }
+            });
+
+            if (varParent.size === 0) {
+                this.reverseFlow.delete(child);
+            }
+        });
+
+        affectedChildren.forEach((deps, child) => {
+            this.updateInflows(child, new Map(), deps);
+        });
     }
 
     updateInflows = (tile, distMem, deps = null) => {
@@ -204,48 +335,6 @@ export default class Flow {
         });
     }
 
-    updateFlowByVarChange = (tile, depsAdded, depsDeleted, indepsAdded, indepsDeleted) => {
-        let distMem = new Map();
-
-        // Process depsAdded
-        this.updateInflows(tile, distMem, depsAdded);
-        
-        // Process depsDeleted
-        let varParents = this.reverseFlow.get(tile);
-        varParents?.forEach((_, varName) => {
-            if (depsDeleted.has(varName)) {
-                this.deleteReverseFlowEdge(tile, varName);
-            }
-        });
-        
-        // Process indepsAdded
-        this.updateOutflows(tile, indepsAdded);
-       
-        // Process indepsDeleted
-        let affectedChildren = new Map(); // tile -> set(varName)
-
-        this.reverseFlow.forEach((varParent, child) => {
-            varParent.forEach((_, varName) => {
-                if (indepsDeleted.has(varName)) {
-                    varParent.delete(varName);
-                    if (!affectedChildren.has(child)) {
-                        affectedChildren.set(child, new Set([varName]));
-                    } else {
-                        affectedChildren.get(child).add(varName);
-                    }
-                }
-            });
-
-            if (varParent.size === 0) {
-                this.reverseFlow.delete(child);
-            }
-        });
-
-        affectedChildren.forEach((deps, child) => {
-            this.updateInflows(child, new Map(), deps);
-        });
-    }
-
     setReverseFlowEdge = (child, varName, parent, dist) => {
         let parentDist = {tgt: parent, dist: dist};
         if (this.reverseFlow.has(child)) {
@@ -261,7 +350,7 @@ export default class Flow {
         return (this.reverseFlow.get(child)?.get(varName));
     }
 
-    deleteReverseFlowEdge = (child, varName) => {
+    removeReverseFlowEdge = (child, varName) => {
         this.reverseFlow.get(child).delete(varName);
         if (this.reverseFlow.get(child).size === 0) {
             this.reverseFlow.delete(child);
