@@ -147,6 +147,9 @@ export default class Flow {
             }
         });
 
+        // console.log(this.graph);
+        console.log(this.mainCanvas.tiles);
+
         // this.updateAllFlow();
         this.updateFlowByVarChange(tile, depsAdded, depsDeleted, indepsAdded, indepsDeleted);
     }

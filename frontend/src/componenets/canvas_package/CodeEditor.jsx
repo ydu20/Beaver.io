@@ -226,21 +226,30 @@ export default class CodeEditor {
         cursor.firstChild()
         do {
             this.recurseST(cursor, envStack, deps, code);
-        } while (cursor.nextSibling())
+        } while (cursor.nextSibling());
     }
 
     // Note: parents handle the return of the pointer back to the parent
     recurseST = (cursor, envStack, deps, code) => {
-        
+
         let nodeType = cursor.node.type.name
         let nodeStr = code.substring(cursor.from, cursor.to)
-        // console.log([nodeType, nodeStr])
+        // if (nodeType === 'MemberExpression') {
+        //     console.log(cursor.node);
+        //     console.log(code.substring(cursor.from, cursor.to))
+        //     console.log(cursor.node.firstChild);
+        //     console.log(code.substring(cursor.node.firstChild.from, cursor.node.firstChild.to))
+        // }
+
+        // console.log(cursor.node);
+        // console.log(code.substring(cursor.from, cursor.to));
 
         // Base case: is a leaf
         if (!cursor.node.firstChild) {
             if (nodeType === 'VariableName') {
+
                 if (!this.varInEnv(nodeStr, envStack)) {
-                    deps.add(nodeStr)
+                    deps.add(nodeStr);
                 }
             }
         }
@@ -270,18 +279,17 @@ export default class CodeEditor {
             cursor.parent()
 
             if (modVar) {
-                
                 envStack[envStack.length - 1].add(modVar);
             }
         } else if (['BinaryExpression', 'Body', 'ReturnStatement',
-            'CallExpression', 'ExpressionStatement', 'ArgList'].includes(nodeType)) {
+            'CallExpression', 'ExpressionStatement', 'TupleExpression'].includes(nodeType)) {
             // Go down a level and iterate
             cursor.firstChild();
             do {
                 this.recurseST(cursor, envStack, deps, code)
             } while (cursor.nextSibling());
-            cursor.parent()
-        } if (nodeType === 'FunctionDefinition') {
+            cursor.parent();
+        } else if (nodeType === 'FunctionDefinition') {
 
             // Add function name to environment
             cursor.firstChild();
@@ -297,20 +305,41 @@ export default class CodeEditor {
             envStack.push(new Set())
             do {
                 this.recurseST(cursor, envStack, deps, code)
-            } while(cursor.nextSibling())
+            } while(cursor.nextSibling());
             
             // Pop from env stack and return to parent
             envStack.pop()
             cursor.parent()
-        } if (nodeType === 'ParamList') {
+        } else if (nodeType === 'ParamList') {
             cursor.firstChild()
-            
             do {
                 if (cursor.node.type.name === 'VariableName') {
-                    envStack[envStack.length - 1].add(code.substring(cursor.from, cursor.to))
+                    if (cursor.node.prevSibling?.type.name == 'AssignOp') {
+                        if (!this.varInEnv(code.substring(cursor.from, cursor.to), envStack)) {
+                            deps.add(code.substring(cursor.from, cursor.to));
+                        }
+                    } else {
+                        envStack[envStack.length - 1].add(code.substring(cursor.from, cursor.to))
+                    }
                 }
             } while (cursor.nextSibling())
             cursor.parent()
+        } else if (nodeType === 'MemberExpression') {
+            // Add object name to dependencies
+            cursor.firstChild();
+            this.recurseST(cursor, envStack, deps, code);
+            cursor.parent();
+        } else if (nodeType === 'ArgList') {
+            cursor.firstChild();
+            do {
+                if (cursor.node.type.name == 'VariableName' && cursor.node.nextSibling?.type.name == 'AssignOp') {
+                    cursor.nextSibling();
+                } else {
+                    this.recurseST(cursor, envStack, deps, code)
+                }
+            } while (cursor.nextSibling());
+            cursor.parent();
+
         }
     }
 

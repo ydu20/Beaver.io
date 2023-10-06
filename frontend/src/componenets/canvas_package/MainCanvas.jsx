@@ -53,8 +53,8 @@ export default class MainCanvas {
         this.window = window;
 
         // JupyterManager
-        // this.jupyterManager = new JupyterManager(window);
-        this.jupyterManager = null;
+        this.jupyterManager = new JupyterManager(window);
+        // this.jupyterManager = null;
         
         // Styling
         for (let prop in this.initialCanvasStyle) {
@@ -261,10 +261,9 @@ export default class MainCanvas {
     loadPanel = () => {
         axios.get('/panels/1').then(res => {
             let panelData = res.data;
-
             this.zoomCanvas(0, 0, panelData.zoom - this.cameraPos.zoom, false);
-            this.panCanvas(panelData.x, panelData.y, false);
-        
+            this.panCanvas(panelData.x / panelData.zoom, panelData.y / panelData.zoom, false);
+            
             this.tiles = panelData.tiles.map(tileData => {
                 let tile = new Tile(
                     tileData.x,
@@ -318,8 +317,10 @@ export default class MainCanvas {
             tiles: tilesData,
         };
 
+        // console.log(panelData.x, panelData.y, panelData.zoom);
+
         axios.post('/panels', panelData).then((res) => {
-            console.log(res.data);
+            // console.log(res.data);
             if (window.setSaveStatus) {
                 window.setSaveStatus("Saved");
             }

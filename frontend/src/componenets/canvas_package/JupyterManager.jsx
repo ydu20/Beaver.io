@@ -13,7 +13,7 @@ export default class JupyterManager {
     
     baseUrl = 'http://localhost:8080';
     wsUrl = 'ws://localhost:8080';
-    token = '8d7baeaa197b4cf6904ca42a3cf085e2b29fee93a28a0e5c';
+    token = '72f7f959e0e99cf399da32b268a888cc2b15468adec34243';
 
     constructor(window) {
         this.window = window;
@@ -105,7 +105,6 @@ export default class JupyterManager {
                 exeCount: reply.content.execution_count,
                 output: outputs
             };
-
 
         } catch (error) {
             throw error;
