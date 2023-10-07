@@ -1,8 +1,50 @@
-# React + Vite
+# Road Map
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Core
+- ~~panning~~
+- ~~editor forward ref~~
+- ~~pixel density~~
+- ~~add / delete blocks~~
+    - ~~create add button~~
+    - ~~handle two tiles~~
+    - ~~z-index~~
+    - ~~link add button~~
+- ~~refractor~~
+- ~~running code~~
+    - ~~Tile control strip~~
+    - ~~Tile selected animation~~
+    - ~~Tile runtime indicator~~
+    - ~~Main control strip~~
+    - ~~code execution class~~
+    - ~~linking to jupyter server~~
+- ~~syntax highlights~~
+- ~~dependency parsing~~
+    - ~~arrow drawing~~
+- ~~backend~~
+    - ~~automatic code saving~~
+- ~~Bug fixing~~
+- Selective arrow drawing
+- Automatic cell arranging
+- Implement markdown
+- Convert to and from jupyter notebook
+- Collaboration
+- AI implementation
 
-Currently, two official plugins are available:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+
+
+
+
+## Other
+- block type creation
+    - Data blocks
+    - function blocks
+    - import blocks
+    - regular blocks
+- zooming in/out editor switching
+- side panels & file management
+    - Left side panel
+- Add text field to each tile
+- collaboration
+- split view
+- web assembly
