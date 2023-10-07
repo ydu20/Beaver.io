@@ -4,6 +4,7 @@ import AddButton from "./AddButton";
 import axios from '../AxiosInstance';
 import JupyterManager from "./JupyterManager";
 import Flow from "./Flow";
+import AutoLayout from "./AutoLayout";
 
 export default class MainCanvas {
 
@@ -92,7 +93,10 @@ export default class MainCanvas {
         // Flow
         this.flow = new Flow(this);
 
-
+        // Attach clean up function
+        window.cleanUpTiles = () => {
+            AutoLayout.generateLayout(this);
+        }   
 
         // Debounce timeoutID
         this.debounceID = null;
@@ -100,7 +104,7 @@ export default class MainCanvas {
         // Last D key press (for delete shortcut)
         this.lastDPress = 0;
 
-        // ****Saving Loading Stuff Below****
+        // ****Saving Loading Stuff Below (Don't modify)****
 
         if (window.setSaveStatus) {
             if (this.saveToServer) {
@@ -738,5 +742,4 @@ export default class MainCanvas {
             x > x1 && x < x2 && y > y1 && y < y2
         )
     }
-
 }

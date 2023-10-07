@@ -271,6 +271,7 @@ export default class Tile {
         } else if (this.tileControls.insideArrow(px, py)) {
             this.drawFlow = !this.drawFlow;
             this.mainCanvas.flow.flowOrderMap = null;
+            this.mainCanvas.flow.flowOrderArray = null;
         } else {
             this.setSelected(1);
         }
@@ -384,5 +385,4 @@ export default class Tile {
             this.innerMarginBottom
         ;
     }
-
 }

@@ -9,12 +9,13 @@ export default class Flow {
 
         this.reverseGraph = new Map(); // <Tile, Map<String, Set<Tile>>>
 
-        // this.flow = new Map(); // <Tile, Map<String, Set<Tile>>>
+        this.flow = null; // <Tile, Map<String, Set<Tile>>>
         this.reverseFlow = new Map(); // <Tile, Map<String, {tgt: Tile, dist: Float}>>
 
         this.globalDependencies = new Map();
 
         this.flowOrderMap = null;
+        this.flowOrderArray = null;
     }
 
     // ********************Calculate flow order***********************
@@ -30,6 +31,7 @@ export default class Flow {
                 this.setEdge(srcObj.tgt, tgt, varName, flow);    
             });
         });
+        this.flow = flow;
 
         let tilesByY = this.mainCanvas.tiles.slice().sort((a, b) => a.y - b.y);
         let flowOrderArray = [];
@@ -45,9 +47,9 @@ export default class Flow {
         let flowOrderMap = new Map();
         for (let i = 0; i < flowOrderArray.length - 1; i++) {
             flowOrderMap.set(flowOrderArray[i], flowOrderArray[i+1]);
-        }        
+        }
         this.flowOrderMap = flowOrderMap;
-        console.log(flowOrderArray);
+        this.flowOrderArray = flowOrderArray;
         return flowOrderMap;
     }
 
@@ -105,6 +107,7 @@ export default class Flow {
 
     updateGraph = (tile, deps, indeps, depsOld, indepsOld) => {
         this.flowOrderMap = null;
+        this.flowOrderArray = null;
         let depsAdded = this.setDifference(deps, depsOld);
         let depsDeleted = this.setDifference(depsOld, deps);
         let indepsAdded = this.setDifference(indeps, indepsOld);
@@ -198,6 +201,7 @@ export default class Flow {
 
     updateEntireGraph = () => {
         this.flowOrderMap = null;
+        this.flowOrderArray = null;
         let graph = new Map();
         this.mainCanvas.tiles?.forEach((tile) => {
             let children = new Map();
@@ -234,6 +238,7 @@ export default class Flow {
 
     updateAllFlow = () => {
         this.flowOrderMap = null;
+        this.flowOrderArray = null;
         this.reverseFlow = new Map();
         this.graph.forEach((vars, src) => {
             let distMem = new Map();
@@ -256,6 +261,7 @@ export default class Flow {
 
     updateFlowByPosChange = (tile) => {
         this.flowOrderMap = null;
+        this.flowOrderArray = null;
         let distMem = new Map();
         // Update inflows
         this.updateInflows(tile, distMem);
@@ -266,6 +272,7 @@ export default class Flow {
 
     updateFlowByVarChange = (tile, depsAdded, depsDeleted, indepsAdded, indepsDeleted) => {
         this.flowOrderMap = null;
+        this.flowOrderArray = null;
         let distMem = new Map();
 
         // Process depsAdded

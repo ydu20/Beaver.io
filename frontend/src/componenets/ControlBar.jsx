@@ -11,6 +11,11 @@ export default function ControlBar() {
             window.startJupyterEnv();
         }
     }
+    const cleanUp = () => {
+        if (window.cleanUpTiles) {
+            window.cleanUpTiles();
+        }
+    }
 
     useEffect(() => {
         window.setControlBarStatus = (status) => {
@@ -42,6 +47,12 @@ export default function ControlBar() {
         </button>
         <button className = 'cb-button'>
             ■
+        </button>
+        <button 
+            className = 'cb-button'
+            onClick = {cleanUp}
+        >
+            Clean Up
         </button>
         <div>
             {saveStatus}
