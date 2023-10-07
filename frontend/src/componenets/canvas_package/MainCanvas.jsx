@@ -96,7 +96,7 @@ export default class MainCanvas {
         // Attach clean up function
         window.cleanUpTiles = () => {
             AutoLayout.generateLayout(this);
-        }   
+        }
 
         // Debounce timeoutID
         this.debounceID = null;
