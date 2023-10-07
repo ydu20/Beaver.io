@@ -335,7 +335,7 @@ export default class CodeEditor {
                 if (cursor.node.type.name == 'VariableName' && cursor.node.nextSibling?.type.name == 'AssignOp') {
                     cursor.nextSibling();
                 } else {
-                    this.recurseST(cursor, envStack, deps, code)
+                    this.recurseST(cursor, envStack, deps, code);
                 }
             } while (cursor.nextSibling());
             cursor.parent();

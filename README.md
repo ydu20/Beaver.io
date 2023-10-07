@@ -35,8 +35,6 @@ DBT for machine learning
 
 
 
-
-
 ## Other
 - block type creation
     - Data blocks
@@ -44,6 +42,7 @@ DBT for machine learning
     - import blocks
     - regular blocks
 - zooming in/out editor switching
+- Make arrows look better
 - side panels & file management
     - Left side panel
 - Add text field to each tile

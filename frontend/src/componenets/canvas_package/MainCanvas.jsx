@@ -53,8 +53,8 @@ export default class MainCanvas {
         this.window = window;
 
         // JupyterManager
-        this.jupyterManager = new JupyterManager(window);
-        // this.jupyterManager = null;
+        // this.jupyterManager = new JupyterManager(window);
+        this.jupyterManager = null;
         
         // Styling
         for (let prop in this.initialCanvasStyle) {
@@ -629,7 +629,8 @@ export default class MainCanvas {
 
         if (!tileDragged && (this.addButton.isInside(cvPX, cvPY) ||
             hoveredTile?.tileControls.insideCircle(cvPX, cvPY) ||
-            hoveredTile?.tileControls.insideSquare(cvPX, cvPY))
+            hoveredTile?.tileControls.insideSquare(cvPX, cvPY) ||
+            hoveredTile?.tileControls.insideArrow(cvPX, cvPY))
         ) {
             this.canvas.classList.add('pointer');
         } else {

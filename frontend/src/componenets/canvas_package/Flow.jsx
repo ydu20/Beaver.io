@@ -47,12 +47,12 @@ export default class Flow {
             flowOrderMap.set(flowOrderArray[i], flowOrderArray[i+1]);
         }        
         this.flowOrderMap = flowOrderMap;
+        console.log(flowOrderArray);
         return flowOrderMap;
     }
 
     nextInFlow = (tile) => {
         if (this.flowOrderMap === null) {
-            console.log("HERE");
             this.getFlowOrder();
         }
         return this.flowOrderMap.get(tile);
@@ -74,20 +74,22 @@ export default class Flow {
         let iterList = [src];
 
         while (iterList.length > 0) {
-            flowOrderArray.push(...iterList);
             let nextIterList = [];
             for (let tile of iterList) {
                 // Check if tile has already been visited
                 if (!discovered.has(tile)) {
                     // Add tile to discovered
                     discovered.add(tile);
+                    flowOrderArray.push(tile);
 
                     // Iterate through children
-                    if (flow.has(tile)) {
+                    if (tile.drawFlow && flow.has(tile)) {
                         let allChildren = new Set();
                         flow.get(tile).forEach((children, _) => {
                             children.forEach(child => {
-                                allChildren.add(child);
+                                if (child.drawFlow) {
+                                    allChildren.add(child);
+                                }
                             });
                         });
                         let sortedChildren = [...allChildren].sort((a, b) => a.x - b.x);
@@ -148,7 +150,7 @@ export default class Flow {
         });
 
         // console.log(this.graph);
-        console.log(this.mainCanvas.tiles);
+        // console.log(this.mainCanvas.tiles);
 
         // this.updateAllFlow();
         this.updateFlowByVarChange(tile, depsAdded, depsDeleted, indepsAdded, indepsDeleted);
@@ -374,6 +376,11 @@ export default class Flow {
                 let sR = src.x + src.width;
                 let sM = (sL + sR) / 2;
 
+                // Check if both source and tgt want flows drawn.
+                if (!(src.drawFlow && tgt.drawFlow)) {
+                    return;
+                }
+
                 // Case 1
                 if (dM > sL && dM < sR) {
                     if (tgt.y > src.y) {
@@ -457,6 +464,7 @@ export default class Flow {
     drawArrow(x1, y1, x2, y2, ctx) {
         ctx.strokeStyle = 'black';
         ctx.fillStyle = 'black';
+        ctx.lineWidth = 1;
 
         let headLength = 10;   // length of the arrowhead
         let headWidth = 5;     // width of the arrowhead

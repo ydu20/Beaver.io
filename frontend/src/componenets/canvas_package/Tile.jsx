@@ -58,6 +58,9 @@ export default class Tile {
 
         // ID
         this.id = id;
+
+        // Draw flow
+        this.drawFlow = true;
     }
 
     // ********************Drawing Function***********************
@@ -126,7 +129,8 @@ export default class Tile {
         this.tileControls.draw(
             this.x + this.width - this.innerMarginSide - this.tileControls.width,
             this.y + (this.innerMarginTop - this.tileControls.height) / 2,
-            ctx
+            ctx, 
+            this.drawFlow
         );
 
         // Drawing status
@@ -264,6 +268,9 @@ export default class Tile {
         } else if (this.tileControls.insideCircle(px, py)) {
             // Execute current codeblock
             this.executeCode();
+        } else if (this.tileControls.insideArrow(px, py)) {
+            this.drawFlow = !this.drawFlow;
+            this.mainCanvas.flow.flowOrderMap = null;
         } else {
             this.setSelected(1);
         }
