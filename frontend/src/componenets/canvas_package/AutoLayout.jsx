@@ -8,8 +8,8 @@ export default class AutoLayout {
         let nodeDepths = new Map(); // <Tile, Integer>
         let nodeHeights = new Map(); // <Tile, Integer>
         let discovered = new Set();
-        let treeRoots = [];
         let treeLevels = [];
+        let treeRoots = [];
 
         for (let tile of mainCanvas.flow.flowOrderArray) {
             if (!discovered.has(tile)) {
@@ -23,10 +23,136 @@ export default class AutoLayout {
                     discovered
                 );
                 treeLevels.push(levels);
+                treeRoots.push(tile);
             }
         }
 
         // Drawing
+        this.drawStyle1(treeRoots, treeLevels, nodeHeights, mainCanvas)
+
+        if (mainCanvas.selected.tile) {
+            mainCanvas.addButton.attachTo(mainCanvas.selected.tile);
+        }
+        mainCanvas.render();
+    }
+
+    static drawStyle1 = (treeRoots, treeLevels, nodeHeights, mainCanvas) => {
+        let x = 150;
+        let y = 150;
+
+        for (let i = 0; i < treeRoots.length; i++) {
+            y = this.drawStyle1Helper(treeRoots[i], x, y, treeLevels[i], nodeHeights);
+        }
+
+        mainCanvas.render();
+
+
+        // let maxLeafHeight = new Map(); // Tile -> Integer
+
+        // nodeHeights.forEach((height, tile) => {
+            
+        // });
+
+        // for (let i = 0; i < treeLevels.length; i++) {
+        //     let sortedLevels = Array.from(treeLevels[i]).sort((a, b) => a[0] - b[0]);
+
+        //     sortedLevels.forEach(entry => {
+        //         let level = entry[0];
+        //         let sortedLevelSet = Array.from(entry[1]).sort((a, b) => nodeHeights.get(a) - nodeHeights.get(b));
+        //         let maxHeight = 0;
+
+        //         if (level === 0) {
+                    
+        //         }
+
+        //         // Case 1: is leaf
+        //         // Step 1: identify parent
+        //         // Step 2: attach to parent
+
+        //         // Case 2: is internal node
+        //         // Step 1: put in main
+        //         // Step 2: keep track of position?
+
+        //     });
+        // }
+    }
+    
+    // DFS-based drawing function
+    // Returns new y coordinate
+    static drawStyle1Helper = (src, x, y, levels, nodeHeights, currDepth = 0) => {
+        // Determine vertical space for this level
+        let sideHeightOverflow = 100;
+        let vertSpace = src.height + sideHeightOverflow;
+        let vertMargin = 20;
+        levels.get(currDepth + 1)?.forEach(tile => {
+            if ((nodeHeights.get(tile) === 0) && (tile.height > vertSpace)) {
+                vertSpace = tile.height;
+            }
+        });
+
+        // Draw src
+        src.x = x;
+        src.y = y;
+        
+        // Process children
+        // Edge case (should only happen when tree's a single node)
+        if (!levels.has(currDepth + 1)) {
+            return (y + vertSpace + vertMargin);
+        }
+        let sortedLevelSet = Array.from(levels.get(currDepth + 1)).sort((a, b) => nodeHeights.get(a) - nodeHeights.get(b));
+
+        // Side initial position
+        let sideMargin = 30;
+        let sideX = x + src.width + sideMargin;
+        let sideY = y;
+        let encounteredNonLeaf = false;
+
+        sortedLevelSet.forEach(tile => {
+            // Draw side tiles (those with height 0)
+            if (nodeHeights.get(tile) === 0) {
+                // Start new column if overflows
+                if (sideY + tile.height > y + vertSpace) {
+                    sideX += tile.width + sideMargin;
+                    sideY = y;
+                }
+                console.log(sideX, sideY);
+                tile.x = sideX;
+                tile.y = sideY;
+
+                sideY += tile.height + sideMargin;
+            } 
+            // Recursively draw children tiles
+            else {
+                if (!encounteredNonLeaf) {
+                    // First non-leaf tile
+                    encounteredNonLeaf = true;
+                    y += vertSpace + vertMargin;
+                }
+                y = this.drawStyle1Helper(tile, x, y, levels, nodeHeights, currDepth + 1);
+            }
+        });
+
+        if (!encounteredNonLeaf) {
+            // Never had non-leaf tile
+            y += vertSpace + vertMargin;
+        }
+
+        return y;
+    }
+
+    static getFirstParent = (tile, mainCanvas) => {
+        let ret = null;
+        let minDist = -1;
+        mainCanvas.reverseFlow.get(tile).forEach((parentDist, _) => {
+            if (minDist === -1 || parentDist.dist < minDist) {
+                ret = parentDist.tgt;
+                minDist = parentDist.dist;
+            }
+        });
+        return ret;
+    }
+
+    static drawStyle2 = (treeLevels, nodeHeights, mainCanvas) => {
         let tileWidth = mainCanvas.tiles[0].width;
         let xStart = 150 + tileWidth / 2;
         let xMinMargin = 30;
@@ -85,11 +211,6 @@ export default class AutoLayout {
                 y += maxHeight + yMargin;
             });
         }
-
-        if (mainCanvas.selected.tile) {
-            mainCanvas.addButton.attachTo(mainCanvas.selected.tile);
-        }
-        mainCanvas.render();
     }
 
     // Function returns height as int, and sets the depth during execution
