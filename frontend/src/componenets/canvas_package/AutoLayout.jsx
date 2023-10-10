@@ -99,17 +99,40 @@ export default class AutoLayout {
         if (!levels.has(currDepth + 1)) {
             return (y + vertSpace + vertMargin);
         }
-        let sortedLevelSet = Array.from(levels.get(currDepth + 1)).sort((a, b) => nodeHeights.get(a) - nodeHeights.get(b));
+
+        let nextLevelArray = Array.from(levels.get(currDepth + 1)).sort((a, b) => {            
+            let heightDiff = nodeHeights.get(a) - nodeHeights.get(b);
+            if (heightDiff !== 0) {
+                return heightDiff;
+            }
+            let xDiff = a.x - b.x;
+            if (xDiff !== 0) {
+                return xDiff;
+            }
+            return a.y - b.y;
+        });
 
         // Side initial position
         let sideMargin = 30;
         let sideX = x + src.width + sideMargin;
         let sideY = y;
         let encounteredNonLeaf = false;
+        let leafCount = 0;
 
-        sortedLevelSet.forEach(tile => {
+        // Leaf to side if more than one leaf; first leaf to bottom
+
+        nextLevelArray.forEach((tile, i) => {
             // Draw side tiles (those with height 0)
             if (nodeHeights.get(tile) === 0) {
+                leafCount++;
+                // First leaf go below
+                if (i === 0) {
+                    tile.x = x;
+                    tile.y = y + vertSpace + vertMargin;
+                    return;
+                }
+
+                // Other leaves go the side
                 // Start new column if overflows
                 if (sideY + tile.height > y + vertSpace) {
                     sideX += tile.width + sideMargin;
@@ -127,6 +150,9 @@ export default class AutoLayout {
                     // First non-leaf tile
                     encounteredNonLeaf = true;
                     y += vertSpace + vertMargin;
+                    if (leafCount !== 0) {
+                        y += nextLevelArray[0].height + sideHeightOverflow + vertMargin;
+                    }
                 }
                 y = this.drawStyle1Helper(tile, x, y, levels, nodeHeights, currDepth + 1);
             }
