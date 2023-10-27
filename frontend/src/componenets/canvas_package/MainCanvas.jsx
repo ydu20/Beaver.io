@@ -5,6 +5,7 @@ import axios from '../AxiosInstance';
 import JupyterManager from "./JupyterManager";
 import Flow from "./Flow";
 import AutoLayout from "./AutoLayout";
+import MarkdownEditor from "./MarkdownEditor";
 
 export default class MainCanvas {
 
@@ -47,10 +48,11 @@ export default class MainCanvas {
 
     debounceDelay = 3000;
 
-    constructor(canvas, editorContainer, window) {
+    constructor(canvas, codeEditorContainer, markdownEditorContainer, window) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
-        this.codeEditor = new CodeEditor(editorContainer, this);
+        this.codeEditor = new CodeEditor(codeEditorContainer, this);
+        this.markdownEditor = new MarkdownEditor(markdownEditorContainer, this);
         this.window = window;
 
         // JupyterManager
@@ -406,6 +408,9 @@ export default class MainCanvas {
         // Draw code editor
         this.codeEditor.draw();
 
+        // Draw markdown editor
+        this.markdownEditor.draw();
+
         // Draw minimap
         this.drawMinimap();
 
@@ -620,7 +625,6 @@ export default class MainCanvas {
         let oldAddButtonTile = this.addButton.tile;
         
         if (!tileDragged && hoveredTile) {
-            
             hoveredTile.onMouseMove(cvPX, cvPY);
 
             // Attach add button if not covered
@@ -634,7 +638,8 @@ export default class MainCanvas {
         if (!tileDragged && (this.addButton.isInside(cvPX, cvPY) ||
             hoveredTile?.tileControls.insideCircle(cvPX, cvPY) ||
             hoveredTile?.tileControls.insideSquare(cvPX, cvPY) ||
-            hoveredTile?.tileControls.insideArrow(cvPX, cvPY))
+            hoveredTile?.tileControls.insideArrow(cvPX, cvPY) ||
+            hoveredTile?.tileControls.insideMD(cvPX, cvPY)) 
         ) {
             this.canvas.classList.add('pointer');
         } else {
@@ -669,7 +674,6 @@ export default class MainCanvas {
 
         if (this.selected.status !== 2 && selected.status === 2) {
             this.codeEditor.startCoding(selected.tile);
-
         } else if (this.selected.status === 2 && selected.status !== 2) {
             this.codeEditor.endCoding();
         } else if (
@@ -679,6 +683,19 @@ export default class MainCanvas {
             this.codeEditor.endCoding();
             this.codeEditor.startCoding(selected.tile);
         }
+
+        if (this.selected.status !== 3 && selected.status === 3) {
+            this.markdownEditor.startEditing(selected.tile);
+        } else if (this.selected.status === 3 && selected.status !== 3) {
+            this.markdownEditor.endEditing();
+        } else if (
+            this.selected.status === 3 && selected.status === 3 &&
+            this.selected.tile !== selected.tile
+        ) {
+            this.markdownEditor.endEditing();
+            this.markdownEditor.startEditing(selected.tile);
+        }
+
         this.selected = selected;
     }
 

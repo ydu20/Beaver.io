@@ -26,7 +26,7 @@ DBT for machine learning
     - ~~automatic code saving~~
 - ~~Bug fixing~~
 - ~~Selective arrow drawing~~
-- Automatic cell arranging
+- ~~Automatic cell arranging~~
 - Implement markdown
 - Convert to and from jupyter notebook
 - Collaboration

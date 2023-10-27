@@ -21,7 +21,9 @@ export default class TileControls {
         this.arrowY = -1;
         this.blockX = -1;
         this.blockRadius = -1;
-
+        this.mdX = -1;
+        this.mdY = -1;
+        this.mdFont = '12px';
     }
 
     draw(x, y, ctx, drawFlow) {
@@ -35,6 +37,8 @@ export default class TileControls {
         this.arrowY = y + (this.height) / 2 - 0.5;
         this.blockRadius = this.arrowLength / 2 + 1;
         this.blockX = this.arrowX + this.blockRadius;
+        this.mdX = this.arrowX - 2 * this.blockRadius - 2 * this.margin;
+        this.mdY = y + 12;
 
         // Run
         ctx.fillStyle = 'green';
@@ -53,6 +57,11 @@ export default class TileControls {
         if (!drawFlow) {
             this.drawBlockSymbol(ctx, this.blockX, this.arrowY, this.blockRadius);
         }
+
+        // Markdown
+        ctx.font = this.mdFont;
+        ctx.fillStyle = 'black';
+        ctx.fillText('MD', this.mdX, this.mdY);
     }
 
     insideCircle(x, y) {
@@ -74,6 +83,15 @@ export default class TileControls {
         let dx = x - this.blockX;
         let dy = y - this.arrowY;
         return dx*dx + dy*dy <= this.blockRadius * this.blockRadius;
+    }
+
+    insideMD(x, y) {
+        return (
+            x >= this.mdX &&
+            x <= this.mdX + 16 &&
+            y >= this.mdY - 14 &&
+            y <= this.mdY
+        );
     }
 
     // **********Drawing Functions**********

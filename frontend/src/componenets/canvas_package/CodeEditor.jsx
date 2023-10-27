@@ -1,5 +1,5 @@
 import {EditorView, keymap} from "@codemirror/view";
-import {EditorSelection} from "@codemirror/state";
+import {EditorState, EditorSelection} from "@codemirror/state";
 import {editorExtensions } from "../editor_customizations/EditorExtensions";
 import {syntaxTree} from '@codemirror/language';
 
@@ -60,27 +60,27 @@ export default class CodeEditor {
     }
 
     // *****************Constructor********************
-    constructor(editorContainer, mainCanvas) {
-        this.editorContainer = editorContainer;
+    constructor(codeEditorContainer, mainCanvas) {
+        this.codeEditorContainer = codeEditorContainer;
         this.attachedTile = null;
         this.mainCanvas = mainCanvas;
 
         // Styling
         for (let prop in this.initialEditorContainerStyle) {
-            editorContainer.style[prop] = this.initialEditorContainerStyle[prop];
+            codeEditorContainer.style[prop] = this.initialEditorContainerStyle[prop];
         }
 
         // EditorChange listener
-        let editorChangeExt = EditorView.updateListener.of(this.onEditorChange);
+        this.editorChangeExt = EditorView.updateListener.of(this.onEditorChange);
 
         // Keymap extensions
         let customKeymaps = [this.executeKeymap, this.exitKeymap];
-        let keymapExt = keymap.of(customKeymaps);
+        this.keymapExt = keymap.of(customKeymaps);
 
         // Attach codemirror 
         this.editorView = new EditorView({
-            extensions: [keymapExt, editorExtensions, editorChangeExt],
-            parent: editorContainer,
+            extensions: [this.keymapExt, editorExtensions, this.editorChangeExt],
+            parent: codeEditorContainer,
         });
     }
 
@@ -88,11 +88,11 @@ export default class CodeEditor {
     draw() {
         let cameraPos = this.mainCanvas.cameraPos;
         if (this.attachedTile) {
-            this.editorContainer.style.left = `${this.canvas2viewportX(this.attachedTile.x + this.attachedTile.innerMarginSide, cameraPos)}px`;
-            this.editorContainer.style.top = `${this.canvas2viewportY(this.attachedTile.y + this.attachedTile.innerMarginTop, cameraPos)}px`;
-            this.editorContainer.style.width = `${(this.attachedTile.width - this.attachedTile.innerMarginSide * 2)}px`;
-            this.editorContainer.style.display = 'block';
-            this.editorContainer.style.transform = `scale(${cameraPos.zoom}, ${cameraPos.zoom})`;
+            this.codeEditorContainer.style.left = `${this.canvas2viewportX(this.attachedTile.x + this.attachedTile.innerMarginSide, cameraPos)}px`;
+            this.codeEditorContainer.style.top = `${this.canvas2viewportY(this.attachedTile.getCodeBlockY(), cameraPos)}px`;
+            this.codeEditorContainer.style.width = `${(this.attachedTile.width - this.attachedTile.innerMarginSide * 2)}px`;
+            this.codeEditorContainer.style.display = 'block';
+            this.codeEditorContainer.style.transform = `scale(${cameraPos.zoom}, ${cameraPos.zoom})`;
             this.editorView.focus();
         }
     }
@@ -133,7 +133,7 @@ export default class CodeEditor {
     // *****************Adjust Height********************
 
     adjustHeight = (height) => {
-        this.attachedTile.setTileHeight(height, null);
+        this.attachedTile.setTileHeight({eh: height});
         this.mainCanvas.render();
     }
 
@@ -142,19 +142,25 @@ export default class CodeEditor {
     startCoding(tile) {
         this.attachedTile = tile;
 
-        // Update editorState with Tile's code, editorView with Tile's height
-        let tr = this.editorView.state.update({
-            changes: {from: 0, to: this.editorView.state.doc.length, insert: tile.code}, 
-            scrollIntoView: true,
-        });
-        this.editorView.dispatch(tr);
+        // Update editorState with Tile's codeState; change Tile Height
+        if (tile.codeState == null) {
+            let newState = EditorState.create({
+                extensions: [this.keymapExt, editorExtensions, this.editorChangeExt]
+            });
+            this.editorView.setState(newState);
+            tile.codeState = newState;
+        } else {
+            this.editorView.setState(tile.codeState);
+        }
+        // console.log(this.editorView.dom.scrollHeight);
+        // this.adjustHeight(this.editorView.dom.scrollHeight);
     }
 
     endCoding() {
         this.updateTileCode();
         this.updateTileDependencies(this.editorView.state, this.editorView.state.doc.toString());
         this.attachedTile = null;
-        this.editorContainer.style.display = 'none';
+        this.codeEditorContainer.style.display = 'none';
         this.mainCanvas.autoSave();
     }
 
@@ -185,7 +191,8 @@ export default class CodeEditor {
             coloredCode.push(lColoring);
         }
         
-        this.attachedTile.code = this.editorView.state.doc.toString();
+        // this.attachedTile.code = this.editorView.state.doc.toString();
+        this.attachedTile.codeState = this.editorView.state;
         this.attachedTile.coloredCode = coloredCode;
         this.mainCanvas.autoSave();
     }
@@ -300,9 +307,9 @@ export default class CodeEditor {
             cursor.parent();
 
             // Iterate through function
-            cursor.firstChild()
+            cursor.firstChild();
             // Push to env stack for new scope
-            envStack.push(new Set())
+            envStack.push(new Set());
             do {
                 this.recurseST(cursor, envStack, deps, code)
             } while(cursor.nextSibling());
@@ -322,8 +329,8 @@ export default class CodeEditor {
                         envStack[envStack.length - 1].add(code.substring(cursor.from, cursor.to))
                     }
                 }
-            } while (cursor.nextSibling())
-            cursor.parent()
+            } while (cursor.nextSibling());
+            cursor.parent();
         } else if (nodeType === 'MemberExpression') {
             // Add object name to dependencies
             cursor.firstChild();

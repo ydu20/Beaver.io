@@ -5,15 +5,17 @@ export default class Tile {
     innerMarginSide = 6;
     innerMarginTop = 24;
     innerMarginBottom = 10;
+    innerMarginMiddle = 14;
     cornerRadius = 5;
     editorOutputMargin = -2;
     minimumEditorHeight = 35;
     minimumOutputHeight = 0;
+    minimumMarkdownHeight = 35;
     minimumHeight = this.innerMarginTop + 
-    this.minimumEditorHeight + 
-    this.editorOutputMargin + 
-    this.minimumOutputHeight + 
-    this.innerMarginBottom;
+        this.minimumEditorHeight + 
+        this.editorOutputMargin + 
+        this.minimumOutputHeight + 
+        this.innerMarginBottom;
     
     constructor(x, y, zIndex, mainCanvas, id) {
         // Container fields
@@ -27,12 +29,17 @@ export default class Tile {
 
         // Code editor fields
         this.editorHeight = this.minimumEditorHeight;
-        this.code = '';
+        this.codeState = null;
         this.coloredCode = []
 
         // Output fields
         this.outputHeight = this.minimumOutputHeight;
         this.output = '';
+
+        // Markdown fields
+        // this.hasMarkdown = false;
+        this.markdownHeight = 0;
+        this.markdownState = null;
 
         // Layering
         this.zIndex = zIndex;
@@ -41,7 +48,9 @@ export default class Tile {
         this.tileControls = new TileControls();
 
         // Selected
-        this.selected = 0;
+        // 0 = not selected, 1 = selected but not coding/MDing,
+        // 2 = coding, 3 = MDing
+        this.selected = 0; 
 
         // Main canvas
         this.mainCanvas = mainCanvas;
@@ -76,7 +85,7 @@ export default class Tile {
         ctx.lineWidth = 3;
         if (this.selected === 2) {
             ctx.strokeStyle = 'limegreen';
-        } else if (this.selected === 1) {
+        } else if (this.selected === 1 || this.selected === 3) {
             ctx.strokeStyle = '#576cf3';
         } else {
             ctx.strokeStyle = 'silver';
@@ -85,12 +94,34 @@ export default class Tile {
         ctx.stroke();
         ctx.fillStyle = 'white';
         ctx.fill();
+
+        // Drawing markdown box
+        if (this.markdownState != null) {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(
+                this.x + this.innerMarginSide,
+                this.y + this.innerMarginTop,
+                this.width - 2 * this.innerMarginSide,
+                this.editorHeight
+            );
+
+            ctx.strokeStyle = 'silver';
+            ctx.lineWidth = 1;
+
+            // Add 1px margin so border doesn't get covered
+            ctx.strokeRect(
+                this.x + this.innerMarginSide - 1,
+                this.y + this.innerMarginTop - 1,
+                this.width - 2 * this.innerMarginSide + 2,
+                this.editorHeight + 2
+            );
+        }
         
         // Drawing codebox
         ctx.fillStyle = 'white';
         ctx.fillRect(
             this.x + this.innerMarginSide,
-            this.y + this.innerMarginTop,
+            this.getCodeBlockY(),
             this.width - 2 * this.innerMarginSide,
             this.editorHeight
         );
@@ -105,7 +136,7 @@ export default class Tile {
         // Add 1px margin so border doesn't get covered
         ctx.strokeRect(
             this.x + this.innerMarginSide - 1,
-            this.y + this.innerMarginTop - 1,
+            this.getCodeBlockY() - 1,
             this.width - 2 * this.innerMarginSide + 2,
             this.editorHeight + 2
         );
@@ -272,6 +303,11 @@ export default class Tile {
             this.drawFlow = !this.drawFlow;
             this.mainCanvas.flow.flowOrderMap = null;
             this.mainCanvas.flow.flowOrderArray = null;
+        } else if (this.tileControls.insideMD(px, py)) {
+            this.setSelected(3);
+            // this.hasMarkdown = true;
+        } else if (this.markdownState != null && this.isInsideMarkdown(px, py)) {
+            this.setSelected(3);
         } else {
             this.setSelected(1);
         }
@@ -283,7 +319,6 @@ export default class Tile {
     }
 
     // ********************Set Selected Status***********************
-
     setSelected = (status) => {
         if (status === 0) {
             this.selected = 0;
@@ -293,12 +328,15 @@ export default class Tile {
         } else if (status === 2 && this.selected !== 2) {
             this.selected = 2;
             this.mainCanvas.toggleSelected({status: 2, tile: this});
+        } else if (status === 3 && this.selected !== 3) {
+            this.selected = 3;
+            this.mainCanvas.toggleSelected({status: 3, tile: this});
         }
     }
 
     // ********************Execute Code***********************
     executeCode = () => {
-        this.jupyterManager.runCell(this.code).then(res => {
+        this.jupyterManager.runCell(this.codeState.doc.toString()).then(res => {
             if (res.exeCount) {
                 this.executionCount = res.exeCount;
             } else {
@@ -306,7 +344,7 @@ export default class Tile {
             }
             this.output = res.output;
 
-            this.setTileHeight(null, this.getOutputHeight());
+            this.setTileHeight({oh: this.getOutputHeight()});
             
             this.mainCanvas.render();
         }).catch(err => {
@@ -321,9 +359,6 @@ export default class Tile {
                 lineCount++;
             }
         }
-
-        // console.log(this.output);
-        // console.log(lineCount);
         
         let cHeight = lineCount == 0 ? 0 : 
         lineCount == 1 ? 18 * (lineCount + 1) - 6.5:
@@ -347,9 +382,23 @@ export default class Tile {
         return (
             x > this.x + this.innerMarginSide &&
             x < this.x + this.width - this.innerMarginSide &&
-            y > this.y + this.innerMarginTop &&
-            y < this.y + this.innerMarginTop + this.editorHeight
+            y > this.getCodeBlockY() &&
+            y < this.getCodeBlockY() + this.editorHeight
         );
+    }
+
+    isInsideMarkdown(x, y) {
+        return (
+            x > this.x + this.innerMarginSide &&
+            x < this.x + this.width - this.innerMarginSide &&
+            y > this.y + this.innerMarginTop &&
+            y < this.y + this.innerMarginTop + this.markdownHeight
+        );
+    }
+
+    getCodeBlockY = () => {
+        let mdOffset = this.markdownState != null ? this.markdownHeight + this.innerMarginMiddle : 0;
+        return (this.y + this.innerMarginTop + mdOffset);
     }
 
     // ********************Dragging helper functions***********************
@@ -369,16 +418,23 @@ export default class Tile {
     }
 
     // ********************Reshaping functions***********************
-
-    setTileHeight(eh, oh) {
-        if (eh != null) {
-            this.editorHeight = Math.max(this.minimumEditorHeight, eh);
+    setTileHeight(update) {
+        console.log(update);
+        if ('eh' in update) {
+            this.editorHeight = Math.max(this.minimumEditorHeight, update.eh);
         }
-        if (oh !== null) {
-            this.outputHeight = Math.max(this.minimumOutputHeight, oh);
+        if ('oh' in update) {
+            this.outputHeight = Math.max(this.minimumOutputHeight, update.oh);
+        }
+        if ('mh' in update) {
+            this.markdownHeight = Math.max(this.minimumMarkdownHeight, update.mh);
         }
 
+        let mdOffset = this.markdownState != null ? this.markdownHeight + this.innerMarginMiddle : 0;
+
+        console.log(mdOffset);
         this.height = this.innerMarginTop + 
+            mdOffset + 
             this.editorHeight +
             this.editorOutputMargin +
             this.outputHeight +
