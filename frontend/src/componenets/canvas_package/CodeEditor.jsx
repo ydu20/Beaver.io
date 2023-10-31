@@ -166,7 +166,7 @@ export default class CodeEditor {
 
     updateTileCode() {
 
-        let lineDivs = Array.from(document.querySelectorAll(".cm-line"));
+        let lineDivs = Array.from(this.codeEditorContainer.querySelectorAll(".cm-line"));
 
         let coloredCode = [];
 
@@ -230,7 +230,7 @@ export default class CodeEditor {
 
     handleTopLevel = (cursor, envStack, deps, code) => {
         // Go into first level under "Script"
-        cursor.firstChild()
+        cursor.firstChild();
         do {
             this.recurseST(cursor, envStack, deps, code);
         } while (cursor.nextSibling());

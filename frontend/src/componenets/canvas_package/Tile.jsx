@@ -40,6 +40,7 @@ export default class Tile {
         // this.hasMarkdown = false;
         this.markdownHeight = 0;
         this.markdownState = null;
+        this.markdownContent = [];
 
         // Layering
         this.zIndex = zIndex;
@@ -50,7 +51,7 @@ export default class Tile {
         // Selected
         // 0 = not selected, 1 = selected but not coding/MDing,
         // 2 = coding, 3 = MDing
-        this.selected = 0; 
+        this.selected = 0;
 
         // Main canvas
         this.mainCanvas = mainCanvas;
@@ -97,24 +98,31 @@ export default class Tile {
 
         // Drawing markdown box
         if (this.markdownState != null) {
-            ctx.fillStyle = 'white';
-            ctx.fillRect(
-                this.x + this.innerMarginSide,
-                this.y + this.innerMarginTop,
-                this.width - 2 * this.innerMarginSide,
-                this.editorHeight
-            );
+            // Currently editing
+            if (this.selected === 3) {
+                ctx.fillStyle = 'white';
+                ctx.fillRect(
+                    this.x + this.innerMarginSide,
+                    this.y + this.innerMarginTop,
+                    this.width - 2 * this.innerMarginSide,
+                    this.markdownHeight
+                );
 
-            ctx.strokeStyle = 'silver';
-            ctx.lineWidth = 1;
-
-            // Add 1px margin so border doesn't get covered
-            ctx.strokeRect(
-                this.x + this.innerMarginSide - 1,
-                this.y + this.innerMarginTop - 1,
-                this.width - 2 * this.innerMarginSide + 2,
-                this.editorHeight + 2
-            );
+                ctx.strokeStyle = 'silver';
+                ctx.lineWidth = 1;
+    
+                // Add 1px margin so border doesn't get covered
+                ctx.strokeRect(
+                    this.x + this.innerMarginSide - 1,
+                    this.y + this.innerMarginTop - 1,
+                    this.width - 2 * this.innerMarginSide + 2,
+                    this.markdownHeight + 2
+                );
+            } 
+            // Not editing
+            else {
+                this.drawMarkdownContent(ctx);
+            }
         }
         
         // Drawing codebox
@@ -149,12 +157,9 @@ export default class Tile {
         );
 
         // Drawing output
-        this.drawText(
-            ctx,
-            this.x + this.innerMarginSide - 2,
-            this.y + this.innerMarginTop + this.editorHeight + this.editorOutputMargin,
-            this.output
-        )
+        let oX = this.x + this.innerMarginSide + 4;
+        let oY = this.y + this.innerMarginTop + this.editorHeight + this.editorOutputMargin + 21;
+        this.drawText(ctx, oX, oX, oY, this.output, true);
 
         // Drawing tile controls
         this.tileControls.draw(
@@ -172,10 +177,57 @@ export default class Tile {
 
         ctx.fillText(`[${this.executionCount == -1 ? ' ': this.executionCount}]`, this.x + 5, this.y + 14);
     }
+
+    drawMarkdownContent(ctx) {
+        let x = this.x + this.innerMarginSide + 4;
+        let y = this.y + this.innerMarginTop + 15;
+
+        this.markdownContent.forEach(item => {
+            [x, y] = this.drawMDHelper(x, y, item, ctx);
+        });
+
+        this.markdownHeight = y - 12 - this.y - this.innerMarginTop;
+        this.setTileHeight({});
+    }
+
+    drawMDHelper(x, y, item, ctx) {
+        if (item.type === "ATXHeading") {
+            let sizing = [
+                {fontSize: 22, yOffset: 33},
+                {fontSize: 20, yOffset: 30},
+                {fontSize: 18, yOffset: 27},
+                {fontSize: 16, yOffset: 24},
+                {fontSize: 14, yOffset: 21},
+                {fontSize: 12, yOffset: 18},
+            ]
+
+            let fontSize = sizing[item.size - 1].fontSize;
+            let yOffset = sizing[item.size - 1].yOffset;
+
+            y += yOffset;
+            ctx.fillStyle = 'black';
+            ctx.font = `bold ${fontSize}px Arial`;
+            ctx.textAlign = 'start';
+            ctx.textBaseline = 'alphabetic'
+            ctx.fillText(item.content, x, y - (yOffset - fontSize) * 2);
+        }
+        else if (item.type === "Paragraph") {
+            item.content.forEach((segment, i) => {
+                let newLine = i === item.content.length - 1;
+                let style = segment.type === "Emphasis" ? "italic 14px monospace" : 
+                    segment.type === "StrongEmphasis" ? "bold 14px monospace" :
+                    "14px monospace";
+                
+                [x, y] = this.drawText(ctx, this.x + this.innerMarginSide + 4, x, y, segment.content, newLine, style);
+            });
+        }
+
+        return [x, y];
+    }
     
-    drawText(ctx, x, y, text) {
+    drawText(ctx, xStart, x, y, text, newLine, style) {
         ctx.fillStyle = 'black';
-        ctx.font = "14px monospace";
+        ctx.font = style ? style : "14px monospace";
         ctx.textAlign = 'start';
         ctx.textBaseline = 'alphabetic'
 
@@ -183,16 +235,22 @@ export default class Tile {
         let spaceWidth = 8.6
         let lines = text.split('\n');
 
-        y += 21
-        x += 6
-        lines.forEach(line => {
-            let currentX = x;
-
+        let currentX = x;
+        lines.forEach((line, i) => {
+            if (i > 0) {
+                currentX = xStart;
+            }
             for (let char of line) {
+                let charWidth = ctx.measureText(char).width;
                 if (char === '\t') {
-                    // console.log("Tab encountered while drawing");
+                    charWidth = ctx.measureText(' ').width * 4;
+                }
+                if (currentX + charWidth >= this.x + this.width - this.innerMarginSide) {
+                    currentX = xStart;
+                    y += lineHeight;
+                }
+                if (char === '\t') {
                     for (let i = 0; i < 4; i++) {
-                        // console.log(currentX);
                         ctx.fillText(' ', currentX, y);
                         currentX += spaceWidth;
                     }
@@ -203,6 +261,12 @@ export default class Tile {
             }
             y += lineHeight;
         });
+        
+        if (newLine) {
+            return [xStart, y];
+        } else {
+            return [currentX, y - lineHeight];
+        }
     }
 
     drawColoredCode(ctx, x, y) {
@@ -364,7 +428,6 @@ export default class Tile {
         lineCount == 1 ? 18 * (lineCount + 1) - 6.5:
         18 * (lineCount) - 6.5;
 
-        // console.log(cHeight);
         return cHeight;
     }
 
@@ -419,7 +482,6 @@ export default class Tile {
 
     // ********************Reshaping functions***********************
     setTileHeight(update) {
-        console.log(update);
         if ('eh' in update) {
             this.editorHeight = Math.max(this.minimumEditorHeight, update.eh);
         }
@@ -432,7 +494,6 @@ export default class Tile {
 
         let mdOffset = this.markdownState != null ? this.markdownHeight + this.innerMarginMiddle : 0;
 
-        console.log(mdOffset);
         this.height = this.innerMarginTop + 
             mdOffset + 
             this.editorHeight +

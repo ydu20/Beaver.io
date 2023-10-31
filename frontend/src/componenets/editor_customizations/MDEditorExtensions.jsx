@@ -5,7 +5,9 @@ import {syntaxHighlighting, bracketMatching,
 import {defaultKeymap, history, historyKeymap, indentWithTab} from "@codemirror/commands";
 import {highlightSelectionMatches} from "@codemirror/search";
 import {closeBrackets, closeBracketsKeymap} from "@codemirror/autocomplete";
+import {markdown} from "@codemirror/lang-markdown";
 
+import { highlightStyle } from "./EditorHighlightStyle";
 import { fontSize } from './EditorTheme';
 
 
@@ -17,6 +19,7 @@ export const mdEditorExtensions = [
     bracketMatching(),
     closeBrackets(),
     highlightSelectionMatches(),
+    markdown(),
     keymap.of([
         indentWithTab, 
         ...defaultKeymap,
@@ -24,4 +27,5 @@ export const mdEditorExtensions = [
         ...closeBracketsKeymap,
     ]), 
     fontSize, 
+    syntaxHighlighting(highlightStyle),
 ];

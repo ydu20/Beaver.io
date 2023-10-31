@@ -1,4 +1,4 @@
-
+import { useEffect, useState} from "react";
 
 export default function Colors() {
 
@@ -32,11 +32,54 @@ export default function Colors() {
         width: 100,
     }
 
+    const [fonts, setFonts] = useState([]);
+
+    function getComputedCharHeight(fontFamily, fontSize) {
+        const testElement = document.createElement('span');
+    
+        testElement.style.fontFamily = fontFamily;
+        testElement.style.fontSize = `${fontSize}px`;
+        testElement.innerHTML = 'A'; 
+
+        testElement.style.position = 'absolute';
+        testElement.style.left = '-9999px';
+        document.body.appendChild(testElement);
+    
+        // console.log(testElement.offsetHeight);
+        // console.log(testElement.offsetWidth);
+
+        let charHeight = testElement.offsetHeight;
+        let charWidth = testElement.offsetWidth;
+    
+        document.body.removeChild(testElement);
+
+        return {
+            size: fontSize,
+            charHeight: charHeight,
+            charWidth: charWidth,
+        }
+    }
+
+    useEffect(() => {
+        let sizes = [];
+
+        for (let i = 4; i <= 15; i++) {
+            sizes.push(getComputedCharHeight('Arial', i * 2));
+        }
+
+        setFonts(sizes);
+    }, []);
+
     return (
         <>
             {Object.entries(colors).map(([name, value], i) => (
                 <div key = {i} style = {{...colorStyle, backgroundColor:value}}>
                     {name}
+                </div>
+            ))}
+            {fonts.map((font, i) => (
+                <div key = {i}>
+                    {`Size: ${font.size}, height: ${font.charHeight}, width: ${font.charWidth}`}
                 </div>
             ))}
         </>
