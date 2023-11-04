@@ -104,12 +104,10 @@ export default class CodeEditor {
             this.updateTileCode();
         }
         if (update.heightChanged) {
-
             if (!this.attachedTile) {
                 return;
             }
-
-            let newCode = update.state.doc.toString()
+            let newCode = update.state.doc.toString();
 
             if (update.view.dom.scrollHeight !== 0) {
                 this.adjustHeight(update.view.dom.scrollHeight);
@@ -152,8 +150,6 @@ export default class CodeEditor {
         } else {
             this.editorView.setState(tile.codeState);
         }
-        // console.log(this.editorView.dom.scrollHeight);
-        // this.adjustHeight(this.editorView.dom.scrollHeight);
     }
 
     endCoding() {
@@ -162,6 +158,16 @@ export default class CodeEditor {
         this.attachedTile = null;
         this.codeEditorContainer.style.display = 'none';
         this.mainCanvas.autoSave();
+    }
+
+    replaceCode(newCode) {
+        if (!this.attachedTile) {
+            return;
+        }
+        let transaction = this.editorView.state.update({
+            changes: {from: 0, to: this.editorView.state.doc.length, insert: newCode}
+        });
+        this.editorView.dispatch(transaction);
     }
 
     updateTileCode() {

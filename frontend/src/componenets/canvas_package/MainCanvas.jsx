@@ -6,6 +6,7 @@ import JupyterManager from "./JupyterManager";
 import Flow from "./Flow";
 import AutoLayout from "./AutoLayout";
 import MarkdownEditor from "./MarkdownEditor";
+import IpynbManager from "./IpynbManager";
 
 export default class MainCanvas {
 
@@ -95,11 +96,6 @@ export default class MainCanvas {
         // Flow
         this.flow = new Flow(this);
 
-        // Attach clean up function
-        window.cleanUpTiles = () => {
-            AutoLayout.generateLayout(this);
-        }
-
         // Debounce timeoutID
         this.debounceID = null;
         
@@ -155,6 +151,16 @@ export default class MainCanvas {
 
         // Render
         this.render();
+
+
+        //  **** Attachments **** 
+        window.cleanUpTiles = () => {
+            AutoLayout.generateLayout(this);
+        }
+
+        window.loadFromFile = (fileJson) => {
+            IpynbManager.loadFromFile(fileJson, this);
+        }
     }
 
     // ********************Find left/right/above/below tile***********************
@@ -281,6 +287,7 @@ export default class MainCanvas {
                 tile.output = tileData.output;
                 tile.setTileHeight(null, tile.getOutputHeight());
 
+                // TODO: BUG HERE
                 tile.code = tileData.code;
 
                 this.codeEditor.startCoding(tile);
@@ -704,18 +711,23 @@ export default class MainCanvas {
     addTile(tile) {
         this.maxZIndex != 1;
         this.maxTileId += 1;
-        this.tiles.push(
-            new Tile(
-                tile.x, 
-                tile.y + tile.height + this.tileMargin, 
-                this.maxZIndex, 
-                this, 
-                this.maxTileId,
-            )
+
+        let x = tile === null ? this.initialTileX : tile.x;
+        let y = tile === null ? this.initialTileY : tile.y + tile.height + this.tileMargin;
+        
+        let newTile = new Tile(
+            x, 
+            y, 
+            this.maxZIndex, 
+            this, 
+            this.maxTileId,
         );
         
+        this.tiles.push(newTile);
         this.autoSave();
         this.render();
+        
+        return newTile;
     }
     
     deleteTile(tile) {

@@ -241,7 +241,6 @@ export default class AutoLayout {
 
     // Function returns height as int, and sets the depth during execution
     static dfs = (src, flow, nodeDepths, nodeHeights, levels, discovered, depth = 0) => {
-        console.log(discovered);
         discovered.add(src);
         nodeDepths.set(src, depth);
         if (levels.has(depth)) {

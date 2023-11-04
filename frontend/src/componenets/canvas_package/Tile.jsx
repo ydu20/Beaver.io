@@ -153,7 +153,7 @@ export default class Tile {
         this.drawColoredCode(
             ctx,
             this.x + this.innerMarginSide + 2,
-            this.y + this.innerMarginTop
+            this.getCodeBlockY()
         );
 
         // Drawing output
@@ -213,12 +213,16 @@ export default class Tile {
         }
         else if (item.type === "Paragraph") {
             item.content.forEach((segment, i) => {
-                let newLine = i === item.content.length - 1;
-                let style = segment.type === "Emphasis" ? "italic 14px monospace" : 
-                    segment.type === "StrongEmphasis" ? "bold 14px monospace" :
-                    "14px monospace";
-                [x, y] = this.drawText(ctx, xStart, x, y, segment.content, newLine, style);
+                if (["Emphasis", "StrongEmphasis", "Text"].includes(segment.type)) {
+                    let style = segment.type === "Emphasis" ? "italic 14px monospace" : 
+                        segment.type === "StrongEmphasis" ? "bold 14px monospace" :
+                        "14px monospace";
+                    [x, y] = this.drawText(ctx, xStart, x, y, segment.content, false, style);
+                }
             });
+            // Newline
+            [x, y] = this.drawText(ctx, xStart, x, y, "", true, "14px monospace");
+
         }
         else if (item.type === "BulletList" || item.type === "OrderedList") {
             let xBase = x + 10;
@@ -336,7 +340,6 @@ export default class Tile {
         return dx * dx + dy * dy;
     }
 
-
     // ********************Event Listeners***********************
     // Events return true if need re-render, false otherwise.
     onMouseDown(px, py) {
@@ -385,9 +388,11 @@ export default class Tile {
         } else if (this.tileControls.insideMD(px, py)) {
             this.setSelected(3);
             // this.hasMarkdown = true;
-        } else if (this.markdownState != null && this.isInsideMarkdown(px, py)) {
-            this.setSelected(3);
-        } else {
+        } 
+        // else if (this.markdownState != null && this.isInsideMarkdown(px, py)) {
+        //     this.setSelected(3);
+        // } 
+        else {
             this.setSelected(1);
         }
         return true;

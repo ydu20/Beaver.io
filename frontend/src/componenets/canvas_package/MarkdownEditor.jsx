@@ -99,6 +99,16 @@ export default class MarkdownEditor {
         this.mdEditorContainer.style.display = 'none';
     }
 
+    replaceMarkdown(newMarkdown) {
+        if (!this.attachedTile) {
+            return;
+        }
+        let transaction = this.editorView.state.update({
+            changes: {from: 0, to: this.editorView.state.doc.length, insert: newMarkdown}
+        });
+        this.editorView.dispatch(transaction);
+    }
+
     updateTileMarkdown() {
         this.attachedTile.markdownState = this.editorView.state;
 

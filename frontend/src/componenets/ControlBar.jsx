@@ -17,6 +17,24 @@ export default function ControlBar() {
         }
     }
 
+    const loadFromFile = async () => {
+        let [fileHandle] = await window.showOpenFilePicker({
+            types: [{
+                description: 'Jupyter Notebook',
+                accept: {
+                    'application/x-ipynb+json': ['.ipynb']
+                }
+            }],
+        });
+        let fileData = await fileHandle.getFile();
+        let fileText = await fileData.text();
+        let fileJson = JSON.parse(fileText);
+
+        if (window.loadFromFile) {
+            window.loadFromFile(fileJson);
+        }
+    }
+
     useEffect(() => {
         window.setControlBarStatus = (status) => {
             setLive(status);
@@ -29,7 +47,7 @@ export default function ControlBar() {
         return () => {
             window.setControlBarStatus = null;
         }
-    }, [])
+    }, []);
 
     return (
     <div className = 'cb-container'>
@@ -53,6 +71,12 @@ export default function ControlBar() {
             onClick = {cleanUp}
         >
             Clean Up
+        </button>
+        <button
+            className = 'cb-button'
+            onClick = {loadFromFile}
+        >
+            Load from File
         </button>
         <div>
             {saveStatus}
