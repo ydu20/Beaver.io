@@ -183,14 +183,14 @@ export default class Tile {
         let y = this.y + this.innerMarginTop + 15;
 
         this.markdownContent.forEach(item => {
-            [x, y] = this.drawMDHelper(x, y, item, ctx);
+            [x, y] = this.drawMDHelper(x, x, y, item, 0, ctx);
         });
 
         this.markdownHeight = y - 12 - this.y - this.innerMarginTop;
         this.setTileHeight({});
     }
 
-    drawMDHelper(x, y, item, ctx) {
+    drawMDHelper(xStart, x, y, item, layer, ctx) {
         if (item.type === "ATXHeading") {
             let sizing = [
                 {fontSize: 22, yOffset: 33},
@@ -208,7 +208,7 @@ export default class Tile {
             ctx.fillStyle = 'black';
             ctx.font = `bold ${fontSize}px Arial`;
             ctx.textAlign = 'start';
-            ctx.textBaseline = 'alphabetic'
+            ctx.textBaseline = 'alphabetic';
             ctx.fillText(item.content, x, y - (yOffset - fontSize) * 2);
         }
         else if (item.type === "Paragraph") {
@@ -217,11 +217,26 @@ export default class Tile {
                 let style = segment.type === "Emphasis" ? "italic 14px monospace" : 
                     segment.type === "StrongEmphasis" ? "bold 14px monospace" :
                     "14px monospace";
-                
-                [x, y] = this.drawText(ctx, this.x + this.innerMarginSide + 4, x, y, segment.content, newLine, style);
+                [x, y] = this.drawText(ctx, xStart, x, y, segment.content, newLine, style);
             });
         }
+        else if (item.type === "BulletList" || item.type === "OrderedList") {
+            let xBase = x + 10;
+            
+            let bullet = layer % 2 === 0 ? '• ' : '◦ ';
+            let start = layer % 2 === 0 ? 49 : 65;
+            
+            item.content.forEach((childItem, i) => {
+                if (childItem.type !== "BulletList" && childItem.type !== "OrderedList") {
 
+                    if (item.type === "OrderedList") {
+                        bullet = String.fromCharCode(start + i) + ". ";
+                    }
+                    [x, y] = this.drawText(ctx, xBase, xBase, y, bullet, false, "14px monospace");
+                }
+                [x, y] = this.drawMDHelper(xBase, x, y, childItem, layer + 1, ctx);                
+            });
+        }
         return [x, y];
     }
     
@@ -231,8 +246,8 @@ export default class Tile {
         ctx.textAlign = 'start';
         ctx.textBaseline = 'alphabetic'
 
-        let lineHeight = 18
-        let spaceWidth = 8.6
+        let lineHeight = 18;
+        let spaceWidth = 8.6;
         let lines = text.split('\n');
 
         let currentX = x;

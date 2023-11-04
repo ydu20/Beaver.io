@@ -103,7 +103,7 @@ export default class MarkdownEditor {
         this.attachedTile.markdownState = this.editorView.state;
 
         // Look into syntax tree to determine markdown
-        // return;
+        return;
         let sTree = syntaxTree(this.editorView.state);
         let md = this.editorView.state.doc.toString();
 
@@ -168,6 +168,7 @@ export default class MarkdownEditor {
         do {
             markdownContent.push(this.recurseST(cursor, md));
         } while (cursor.nextSibling());
+        // console.log(markdownContent);
         return markdownContent;
     }
 
@@ -190,7 +191,7 @@ export default class MarkdownEditor {
             cursor.node.type.name === "OrderedList" ||
             cursor.node.type.name === "BulletList"
         ) {
-            return this.handleList(cursor, md);
+            return this.handleList(cursor, md, 0);
         }
 
         // Other types
@@ -272,23 +273,26 @@ export default class MarkdownEditor {
         }
     }
 
-    handleList(cursor, md) {
-        let items = [];
+    handleList(cursor, md, level) {
+        let content = [];
         if (cursor.firstChild()) {
             do {
                 if (cursor.node.type.name === "ListItem") {
                     cursor.firstChild();
-                    cursor.nextSibling();
-                    let listItem = this.recurseST(cursor, md);
+                    do {
+                        if (cursor.node.type.name !== "ListMark") {
+                            let listItem = this.recurseST(cursor, md);
+                            content.push(listItem);
+                        }
+                    } while (cursor.nextSibling());
                     cursor.parent();
-                    items.push(listItem);
                 }
             } while (cursor.nextSibling());
             cursor.parent();
         }
         return {
             type: cursor.node.type.name,
-            items: items,
+            content: content,
         }
     }
 
